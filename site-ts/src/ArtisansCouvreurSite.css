@@ -1,0 +1,294 @@
+/* Reset de base */
+body,
+h1,
+h2,
+p,
+a,
+button,
+input,
+textarea {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.site-wrapper {
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    color: #333;
+}
+
+/* Header */
+.header {
+    background: #111;
+    color: white;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.header h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 2rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #f3f3f3;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    margin-bottom: 0.5rem;
+}
+
+.header nav a {
+    color: white;
+    margin-left: 1rem;
+    text-decoration: none;
+    position: relative;
+    padding-bottom: 4px;
+    transition: color 0.3s ease;
+}
+
+/* Ligne animée sous le lien */
+.header nav a::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: #e63946;
+    border-radius: 2px;
+
+    /* Animation plus fluide */
+    transition:
+        width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Au survol, la ligne s'étend de la gauche à la droite */
+.header nav a:hover::after {
+    width: 100%;
+    left: 0;
+}
+
+.header nav a:hover {
+    color: #e63946;
+}
+
+
+
+/* Hero Section */
+.hero {
+    position: relative;
+    height: 95vh;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: white;
+}
+
+.overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+}
+
+.hero-content h2 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.hero-content .button {
+    background: #e63946;
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 1.5rem;
+}
+
+/* Section générique */
+.section {
+    padding: 4rem 2rem;
+    background: white;
+    text-align: center;
+}
+
+.section.grey {
+    background: #eee;
+}
+
+/* Prestations */
+.cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.card {
+    background: #f1f1f1;
+    padding: 1rem;
+    border-radius: 8px;
+    width: 200px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Slider avant/après */
+.slider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.slider-images {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+}
+
+.slider-images img {
+    margin-top: 20px;
+    width: 360px;
+    height: 440px;
+    object-fit: cover;
+    border-radius: 8px;
+    opacity: 0;
+    transform: translateX(20px);
+    animation: fadeSlideSoft 0.9s ease-in-out forwards;
+}
+
+
+/* Animation douce */
+@keyframes fadeSlideSoft {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+
+.slider-button {
+    background: #e63946;
+    color: white;
+    font-size: 1.5rem;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.3s;
+    position: relative;
+    z-index: 2;
+}
+
+.slider-button:active {
+    transform: scale(0.9) rotate(-10deg);
+    background: #d62839;
+    box-shadow: 0 0 10px rgba(230, 57, 70, 0.6);
+}
+
+
+/* Formulaire de contact */
+.contact-form {
+    max-width: 500px;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.contact-form input,
+.contact-form textarea {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.contact-form button {
+    background: #e63946;
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* Footer */
+.footer {
+    background: #111;
+    color: white;
+    text-align: center;
+    padding: 1rem;
+}
+
+@media (max-width: 768px) {
+    .hero-content h2 {
+        font-size: 1.8rem;
+    }
+
+    .slider-images img {
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .cards {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: center;
+        /* centrer le header */
+    }
+
+    .header nav {
+        margin-top: 1rem;
+        flex-direction: column;
+        gap: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        /* centrer les liens nav */
+    }
+
+    /* Correction slider */
+    .slider {
+        flex-wrap: nowrap;
+        /* empêche le wrap des boutons */
+        justify-content: center;
+        /* centre les éléments */
+        gap: 1rem;
+        /* espace entre boutons et images */
+        flex-direction: row;
+        /* garde la direction ligne */
+    }
+
+    .slider-button {
+        flex-shrink: 0;
+        /* empêche les boutons de rétrécir */
+        width: 40px;
+        height: 40px;
+    }
+}
