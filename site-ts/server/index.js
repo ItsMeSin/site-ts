@@ -3,109 +3,125 @@ const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-const mongoose = require("mongoose");
 const nodemailer = require("nodemailer");
 const PDFDocument = require("pdfkit");
 
-const Devis = require("./models/Devis");
-
 const app = express();
-const PORT = 4000;
 
-// Connexion MongoDB
-mongoose.connect("mongodb://localhost:27017/TSCouverture")
-  .then(() => console.log("✅ Connexion MongoDB réussie"))
-  .catch(err => console.error("❌ Erreur MongoDB :", err));
-
-// Middleware
-app.use(cors());
+// ✅ Middleware
+app.use(cors({ origin: "http://localhost:3000" }));
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/pdfs", express.static(path.join(__dirname, "pdfs")));
 
-// Multer : stockage des fichiers
+// ✅ Création des dossiers si pas existants
+["uploads", "pdfs"].forEach((dir) => {
+  const dirPath = path.join(__dirname, dir);
+  if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath);
+});
+
+// ✅ Multer (upload photos)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const dir = path.join(__dirname, "uploads");
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-    cb(null, dir);
+    cb(null, "uploads/");
   },
   filename: (req, file, cb) => {
-    const uniqueName = Date.now() + "-" + file.originalname;
-    cb(null, uniqueName);
-  }
+    cb(null, Date.now() + "-" + file.originalname);
+  },
 });
 const upload = multer({ storage });
 
-// Fonction PDF
-function genererPDF(devis) {
-  const doc = new PDFDocument();
-  const fileName = `devis-${devis._id}.pdf`;
-  doc.pipe(fs.createWriteStream(`./pdfs/${fileName}`));
-  doc.text(`Devis pour ${devis.nom}`, { align: "center" });
-  doc.text(`Service : ${devis.service}`);
-  doc.text(`Prix estimé : ${devis.prixEstime} €`);
-  doc.end();
-  return fileName;
-}
+// ✅ Transporter Nodemailer (Ethereal pour tests)
+let transporter;
+(async () => {
+  let testAccount = await nodemailer.createTestAccount();
+  transporter = nodemailer.createTransport({
+    host: "smtp.ethereal.email",
+    port: 587,
+    secure: false,
+    auth: {
+      user: testAccount.user,
+      pass: testAccount.pass,
+    },
+    tls: {
+      rejectUnauthorized: false, // 🚑 corrige l'erreur "self-signed certificate"
+    },
+  });
+  console.log("📧 Ethereal prêt :", testAccount.user);
+  console.log("👉 Voir les mails : https://ethereal.email/login");
+})();
 
-// Mail config
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: "votreemail@gmail.com",
-    pass: "votreMotDePasseOuAppPassword",
-  },
-});
+// ✅ Fonction de génération PDF
+function generatePDF(data, filePath) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument();
+    const stream = fs.createWriteStream(filePath);
+    doc.pipe(stream);
 
-async function envoyerConfirmationEmail(devis) {
-  await transporter.sendMail({
-    from: "votreemail@gmail.com",
-    to: devis.email,
-    subject: "Confirmation de votre demande de devis",
-    text: `Bonjour ${devis.nom}, nous avons bien reçu votre demande.`,
+    doc.fontSize(20).text("Devis Client", { align: "center" }).moveDown();
+
+    doc.fontSize(12).text(`Nom : ${data.nom}`);
+    doc.text(`Email : ${data.email}`);
+    doc.text(`Téléphone : ${data.telephone}`);
+    doc.text(`Service : ${data.service}`);
+    doc.text(`Prix estimé : ${data.prixEstime} €`);
+    doc.moveDown();
+    doc.text("Détails :");
+    doc.text(data.details || "Aucun détail fourni.");
+    doc.end();
+
+    stream.on("finish", () => resolve());
+    stream.on("error", reject);
   });
 }
 
-// ✅ ROUTE POST : enregistrer un devis
+// ✅ ROUTE API : réception du formulaire
 app.post("/api/devis", upload.array("photos"), async (req, res) => {
   try {
-    const { nom, email, telephone, service, quantite, details, prixEstime } = req.body;
+    const { nom, email, telephone, service, prixEstime, details } = req.body;
     const photos = req.files.map((file) => `/uploads/${file.filename}`);
 
-    const nouveauDevis = new Devis({
-      nom,
-      email,
-      telephone,
-      service,
-      quantite: Number(quantite),
-      details,
-      prixEstime: Number(prixEstime),
-      photos
+    // 📄 Générer le PDF
+    const pdfPath = path.join(__dirname, `pdfs/devis-${Date.now()}.pdf`);
+    await generatePDF({ nom, email, telephone, service, prixEstime, details }, pdfPath);
+
+    // 📧 Envoyer email avec PDF
+    let info = await transporter.sendMail({
+      from: '"Site Artisans" <no-reply@artisans.com>',
+      to: "artisan@example.com", // 👉 à remplacer par ton vrai mail quand tu passes en Gmail
+      subject: "📄 Nouveau devis reçu",
+      html: `
+        <h2>Nouveau devis reçu</h2>
+        <p><strong>Nom :</strong> ${nom}</p>
+        <p><strong>Email :</strong> ${email}</p>
+        <p><strong>Téléphone :</strong> ${telephone}</p>
+        <p><strong>Service :</strong> ${service}</p>
+        <p><strong>Prix estimé :</strong> ${prixEstime} €</p>
+        <p><strong>Photos :</strong></p>
+        ${photos.length > 0
+          ? photos.map((p) => `<a href="http://localhost:4000${p}" target="_blank">${p}</a>`).join("<br>")
+          : "Aucune photo"
+        }
+      `,
+      attachments: [{ filename: "devis.pdf", path: pdfPath }],
     });
 
-    await nouveauDevis.save();
-
-    // Générer PDF et envoyer mail (optionnel)
-    genererPDF(nouveauDevis);
-    await envoyerConfirmationEmail(nouveauDevis);
-
-    res.status(200).json({ message: "Devis enregistré avec succès", devis: nouveauDevis });
-  } catch (error) {
-    console.error("Erreur :", error);
-    res.status(500).json({ message: "Erreur serveur" });
+    res.json({
+      message: "✅ Devis envoyé avec succès",
+      previewUrl: nodemailer.getTestMessageUrl(info), // 👈 lien Ethereal
+    });
+  } catch (err) {
+    console.error("❌ Erreur serveur :", err);
+    res.status(500).json({ error: "Erreur lors de l'envoi du devis" });
   }
 });
 
-// ✅ ROUTE GET : récupérer les devis pour admin
-app.get("/api/admin/devis", async (req, res) => {
-  try {
-    const devis = await Devis.find().sort({ date: -1 });
-    res.json(devis);
-  } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la récupération des devis" });
-  }
+// ✅ Route test
+app.get("/", (req, res) => {
+  res.send("API en ligne 🚀");
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Serveur lancé sur http://localhost:${PORT}`);
+// ✅ Lancer serveur
+app.listen(4000, () => {
+  console.log("✅ Serveur lancé sur http://localhost:4000");
 });

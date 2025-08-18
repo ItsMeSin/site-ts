@@ -82,23 +82,38 @@ export default function ArtisansCouvreurSite() {
                 body: data,
             });
 
-            if (response.ok) {
-                alert("Votre demande de devis a été envoyée !");
-                setFormData({
-                    nom: "",
-                    email: "",
-                    telephone: "",
-                    service: "",
-                    quantite: 1,
-                    details: "",
-                    photos: [],
-                    prixEstime: 0,
-                });
-            } else {
-                alert("Erreur lors de l’envoi");
+            let result;
+            try {
+                result = await response.json();
+            } catch {
+                throw new Error("Réponse serveur invalide");
             }
+
+            if (!response.ok) {
+                console.error("❌ Erreur serveur :", result);
+                alert("Erreur lors de l’envoi : " + (result.error || "inconnue"));
+                return;
+            }
+
+            // ✅ succès
+            alert("Votre demande de devis a été envoyée !");
+            if (result.previewUrl) {
+                console.log("📧 Lien Ethereal :", result.previewUrl);
+                alert("Lien de prévisualisation du mail : " + result.previewUrl);
+            }
+
+            setFormData({
+                nom: "",
+                email: "",
+                telephone: "",
+                service: "",
+                quantite: 1,
+                details: "",
+                photos: [],
+                prixEstime: 0,
+            });
         } catch (error) {
-            console.error("Erreur réseau :", error);
+            console.error("❌ Erreur réseau :", error);
             alert("Erreur de connexion au serveur");
         }
     };
