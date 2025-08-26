@@ -2,51 +2,57 @@ const PdfPrinter = require("pdfmake");
 const fs = require("fs");
 const path = require("path");
 
+// 📂 Polices Roboto (dans server/fonts/Roboto/)
+const fonts = {
+    Roboto: {
+        normal: path.join(__dirname, "fonts/Roboto/Roboto_Condensed-Regular.ttf"),
+        bold: path.join(__dirname, "fonts/Roboto/Roboto_Condensed-Bold.ttf"),
+        italics: path.join(__dirname, "fonts/Roboto/Roboto_Condensed-Italic.ttf"),
+        bolditalics: path.join(__dirname, "fonts/Roboto/Roboto_Condensed-BoldItalic.ttf"),
+    },
+};
+
+const printer = new PdfPrinter(fonts);
+
 function generatePDF(data, outputPath) {
     return new Promise((resolve, reject) => {
-        const fonts = {
-            Roboto: {
-                normal: "node_modules/pdfmake/fonts/Roboto/Roboto-Regular.ttf",
-                bold: "node_modules/pdfmake/fonts/Roboto/Roboto-Medium.ttf",
-                italics: "node_modules/pdfmake/fonts/Roboto/Roboto-Italic.ttf",
-                bolditalics: "node_modules/pdfmake/fonts/Roboto/Roboto-MediumItalic.ttf",
-            },
-        };
-
-        const printer = new PdfPrinter(fonts);
+        const prestations = data.prestations || []; // ✅ fallback si undefined
 
         const docDefinition = {
             content: [
+                // --- HEADER avec Logo + Infos Entreprise ---
                 {
                     columns: [
                         {
-                            text: "🏠 Mon Entreprise\n15 Rue de la République\n75000 Paris\nTel: 01 23 45 67 89\nEmail: contact@monentreprise.com",
-                            fontSize: 10,
-                            margin: [0, 0, 0, 20],
+                            image: path.resolve(__dirname, "logo.jpg"), // ou logo.png
+                            width: 100,
                         },
-                        {
-                            text: `DEVIS\nN° ${Date.now()}\nDate: ${new Date().toLocaleDateString()}`,
-                            alignment: "right",
-                            bold: true,
-                            fontSize: 12,
-                        },
+                        [
+                            { text: "Entreprise TS COUVERTURE", style: "title" },
+                            { text: "15 rue de la République\n75000 Paris", style: "small" },
+                            { text: "Tel: 01 02 03 04 05 | contact@stonyrenov.com", style: "small" },
+                        ],
                     ],
                 },
 
-                { text: "Informations Client", style: "header" },
+                { text: "\n\n" },
+
+                // --- Infos Devis ---
                 {
-                    table: {
-                        widths: ["*", "*"],
-                        body: [
-                            ["Nom", data.nom],
-                            ["Email", data.email],
-                            ["Téléphone", data.telephone],
+                    columns: [
+                        [
+                            { text: `DEVIS N°: ${data.devisNumero || "0001"}`, style: "header" },
+                            { text: `Date: ${new Date().toLocaleDateString()}`, style: "small" },
+                            { text: `Client: ${data.nom}`, style: "small" },
+                            { text: `Email: ${data.email}`, style: "small" },
+                            { text: `Téléphone: ${data.telephone}`, style: "small" },
                         ],
-                    },
-                    margin: [0, 10, 0, 20],
+                    ],
                 },
 
-                { text: "Détails du Devis", style: "header" },
+                { text: "\n" },
+
+                // --- Tableau prestations ---
                 {
                     table: {
                         headerRows: 1,
@@ -54,40 +60,67 @@ function generatePDF(data, outputPath) {
                         body: [
                             [
                                 { text: "Désignation", style: "tableHeader" },
-                                { text: "Qté", style: "tableHeader" },
-                                { text: "Prix Unitaire", style: "tableHeader" },
-                                { text: "Total HT", style: "tableHeader" },
+                                { text: "Quantité", style: "tableHeader" },
+                                { text: "Prix unitaire (€)", style: "tableHeader" },
+                                { text: "Total (€)", style: "tableHeader" },
                             ],
-                            [data.service, "1", `${data.prixEstime} €`, `${data.prixEstime} €`],
+                            ...(prestations.length > 0
+                                ? prestations.map((p) => [
+                                    p.designation,
+                                    p.quantite,
+                                    p.prixUnitaire.toFixed(2),
+                                    (p.quantite * p.prixUnitaire).toFixed(2),
+                                ])
+                                : [["Aucune prestation", "", "", ""]]),
                         ],
                     },
                     layout: "lightHorizontalLines",
-                    margin: [0, 10, 0, 20],
                 },
 
+                { text: "\n" },
+
+                // --- Totaux ---
                 {
-                    text: `TOTAL HT : ${data.prixEstime} €\nTVA (10%) : ${(data.prixEstime * 0.1).toFixed(2)} €\nTOTAL TTC : ${(data.prixEstime * 1.1).toFixed(2)} €`,
-                    style: "total",
-                    alignment: "right",
+                    columns: [
+                        { text: "" },
+                        {
+                            table: {
+                                widths: ["*", "auto"],
+                                body: [
+                                    ["Total HT", `${(data.totalHT || 0).toFixed(2)} €`],
+                                    ["TVA (10%)", `${(data.tva || 0).toFixed(2)} €`],
+                                    [
+                                        { text: "TOTAL TTC", bold: true },
+                                        { text: `${(data.totalTTC || 0).toFixed(2)} €`, bold: true },
+                                    ],
+                                ],
+                            },
+                            layout: "lightHorizontalLines",
+                            alignment: "right", // ✅ aligné à droite
+                        },
+                    ],
                 },
 
-                { text: "\nConditions de règlement :\n- 30% à la commande\n- Solde à la livraison", fontSize: 9, margin: [0, 20, 0, 0] },
+                { text: "\n\nConditions de règlement : acompte 30% à la commande, solde à la livraison.", style: "small" },
+                { text: "Merci de nous retourner ce devis signé avec la mention « Bon pour accord »", style: "small" },
             ],
 
             styles: {
+                title: { fontSize: 16, bold: true },
                 header: { fontSize: 14, bold: true, margin: [0, 10, 0, 5] },
-                tableHeader: { bold: true, fontSize: 12, fillColor: "#f39c12", color: "white" },
-                total: { bold: true, fontSize: 12 },
+                small: { fontSize: 9 },
+                tableHeader: { bold: true, fillColor: "#eeeeee" },
             },
         };
 
-        const pdfDoc = printer.createPdfKitDocument(docDefinition);
-        const stream = fs.createWriteStream(outputPath);
-        pdfDoc.pipe(stream);
-        pdfDoc.end();
-
-        stream.on("finish", () => resolve(outputPath));
-        stream.on("error", reject);
+        try {
+            const pdfDoc = printer.createPdfKitDocument(docDefinition);
+            pdfDoc.pipe(fs.createWriteStream(outputPath));
+            pdfDoc.end();
+            resolve();
+        } catch (err) {
+            reject(err);
+        }
     });
 }
 
