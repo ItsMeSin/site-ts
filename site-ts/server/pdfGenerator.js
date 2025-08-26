@@ -20,28 +20,41 @@ function generatePDF(data, outputPath) {
 
         const docDefinition = {
             content: [
-                // --- HEADER avec Logo + Infos Entreprise ---
+                // --- Bandeau avec Logo + Titre ---
+                {
+                    table: {
+                        widths: ["auto", "*"],
+                        body: [
+                            [
+                                {
+                                    image: path.resolve(__dirname, "logo.jpg"),
+                                    width: 80,
+                                },
+                                {
+                                    text: "DEVIS",
+                                    style: "devisTitle",
+                                    alignment: "right",
+                                    margin: [0, 20, 10, 0],
+                                },
+                            ],
+                        ],
+                    },
+                    layout: "noBorders",
+                    fillColor: "#004080", // bleu foncé
+                },
+
+                { text: "\n" },
+
+                // --- Infos Entreprise + Client ---
                 {
                     columns: [
-                        {
-                            image: path.resolve(__dirname, "logo.jpg"), // ou logo.png
-                            width: 100,
-                        },
                         [
                             { text: "Entreprise TS COUVERTURE", style: "title" },
                             { text: "15 rue de la République\n75000 Paris", style: "small" },
                             { text: "Tel: 01 02 03 04 05 | contact@stonyrenov.com", style: "small" },
                         ],
-                    ],
-                },
-
-                { text: "\n\n" },
-
-                // --- Infos Devis ---
-                {
-                    columns: [
                         [
-                            { text: `DEVIS N°: ${data.devisNumero || "0001"}`, style: "header" },
+                            { text: `Devis N°: ${data.devisNumero || "0001"}`, style: "header" },
                             { text: `Date: ${new Date().toLocaleDateString()}`, style: "small" },
                             { text: `Client: ${data.nom}`, style: "small" },
                             { text: `Email: ${data.email}`, style: "small" },
@@ -65,11 +78,11 @@ function generatePDF(data, outputPath) {
                                 { text: "Total (€)", style: "tableHeader" },
                             ],
                             ...(prestations.length > 0
-                                ? prestations.map((p) => [
-                                    p.designation,
-                                    p.quantite,
-                                    p.prixUnitaire.toFixed(2),
-                                    (p.quantite * p.prixUnitaire).toFixed(2),
+                                ? prestations.map((p, i) => [
+                                    { text: p.designation, fillColor: i % 2 === 0 ? "#f9f9f9" : null },
+                                    { text: p.quantite, alignment: "center", fillColor: i % 2 === 0 ? "#f9f9f9" : null },
+                                    { text: p.prixUnitaire.toFixed(2), alignment: "right", fillColor: i % 2 === 0 ? "#f9f9f9" : null },
+                                    { text: (p.quantite * p.prixUnitaire).toFixed(2), alignment: "right", fillColor: i % 2 === 0 ? "#f9f9f9" : null },
                                 ])
                                 : [["Aucune prestation", "", "", ""]]),
                         ],
@@ -81,24 +94,19 @@ function generatePDF(data, outputPath) {
 
                 // --- Totaux ---
                 {
-                    columns: [
-                        { text: "" },
-                        {
-                            table: {
-                                widths: ["*", "auto"],
-                                body: [
-                                    ["Total HT", `${(data.totalHT || 0).toFixed(2)} €`],
-                                    ["TVA (10%)", `${(data.tva || 0).toFixed(2)} €`],
-                                    [
-                                        { text: "TOTAL TTC", bold: true },
-                                        { text: `${(data.totalTTC || 0).toFixed(2)} €`, bold: true },
-                                    ],
-                                ],
-                            },
-                            layout: "lightHorizontalLines",
-                            alignment: "right", // ✅ aligné à droite
-                        },
-                    ],
+                    alignment: "right",
+                    table: {
+                        widths: ["*", "auto"],
+                        body: [
+                            ["Total HT", `${(data.totalHT || 0).toFixed(2)} €`],
+                            ["TVA (10%)", `${(data.tva || 0).toFixed(2)} €`],
+                            [
+                                { text: "TOTAL TTC", bold: true, fillColor: "#004080", color: "white" },
+                                { text: `${(data.totalTTC || 0).toFixed(2)} €`, bold: true, fillColor: "#004080", color: "white" },
+                            ],
+                        ],
+                    },
+                    layout: "lightHorizontalLines",
                 },
 
                 { text: "\n\nConditions de règlement : acompte 30% à la commande, solde à la livraison.", style: "small" },
@@ -106,12 +114,14 @@ function generatePDF(data, outputPath) {
             ],
 
             styles: {
-                title: { fontSize: 16, bold: true },
-                header: { fontSize: 14, bold: true, margin: [0, 10, 0, 5] },
+                devisTitle: { fontSize: 22, bold: true, color: "white" },
+                title: { fontSize: 14, bold: true },
+                header: { fontSize: 12, bold: true, margin: [0, 5, 0, 5] },
                 small: { fontSize: 9 },
-                tableHeader: { bold: true, fillColor: "#eeeeee" },
+                tableHeader: { bold: true, fillColor: "#004080", color: "white" },
             },
         };
+
 
         try {
             const pdfDoc = printer.createPdfKitDocument(docDefinition);
