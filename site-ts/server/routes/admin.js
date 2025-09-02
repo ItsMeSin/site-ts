@@ -22,14 +22,25 @@ function verifyToken(req, res, next) {
 // 📌 Route de connexion admin (login)
 router.post("/login", (req, res) => {
     const { email, password } = req.body;
+    console.log("Tentative de connexion :", email, password); // 👈 log côté serveur
 
-    // ⚠️ Simple vérification en dur (à améliorer avec bcrypt + DB)
-    if (email === "admin@tscouverture.fr" && password === "admin123") {
-        const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: "2h" });
-        return res.json({ token });
+    try {
+        if (email === "admin@tscouverture.fr" && password === "admin123") {
+            const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: "2h" });
+            console.log("✅ Connexion réussie :", email);
+            return res.json({ token });
+        } else {
+            console.log("❌ Identifiants invalides");
+            return res.status(401).json({ message: "Identifiants invalides" });
+        }
+    } catch (err) {
+        console.error("🔥 Erreur dans /login :", err);
+        res.status(500).json({ message: "Erreur serveur" });
     }
+});
 
-    return res.status(401).json({ message: "Identifiants invalides" });
+router.get("/test", (req, res) => {
+    res.json({ message: "✅ Route admin OK" });
 });
 
 // 📌 Route pour récupérer tous les devis (protégée)

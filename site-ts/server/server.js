@@ -5,8 +5,8 @@ const path = require("path");
 
 // Routes
 const demandeRoutes = require("./routes/demande");
-const adminRoutes = require("./admin");
-const devisRoutes = require("./routes/devis"); // si tu en as
+const adminRoutes = require("./routes/admin");
+const devisRoutes = require("./routes/devis");
 
 const app = express();
 app.use(cors());
@@ -24,7 +24,7 @@ mongoose.connect("mongodb://localhost:27017/TSCouverture")
 // Utilisation des routes
 app.use("/api/demandes", demandeRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/devis", devisRoutes); // si présent
+app.use("/api/devis", devisRoutes);
 
 // Lancement serveur
 const PORT = 4000;
