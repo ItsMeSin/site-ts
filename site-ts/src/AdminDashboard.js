@@ -104,20 +104,45 @@ function AdminDashboard({ onLogout }) {
                                 </td>
                                 <td>{new Date(devis.date).toLocaleDateString()}</td>
                                 <td>
-                                    <a
-                                        href={`http://localhost:4000/pdfs/devis-${devis._id}.pdf`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                    <button
+                                        onClick={async () => {
+                                            const token = localStorage.getItem("token");
+                                            try {
+                                                const res = await fetch(`http://localhost:4000/api/admin/devis/${devis._id}/pdf`, {
+                                                    headers: {
+                                                        Authorization: `Bearer ${token}`,
+                                                    },
+                                                });
+
+                                                if (!res.ok) {
+                                                    throw new Error("Erreur téléchargement PDF");
+                                                }
+
+                                                const blob = await res.blob();
+                                                const url = window.URL.createObjectURL(blob);
+                                                const a = document.createElement("a");
+                                                a.href = url;
+                                                a.download = `devis-${devis._id}.pdf`;
+                                                document.body.appendChild(a);
+                                                a.click();
+                                                a.remove();
+                                                window.URL.revokeObjectURL(url);
+                                            } catch (err) {
+                                                alert("Impossible de télécharger le PDF");
+                                                console.error(err);
+                                            }
+                                        }}
                                         style={{
                                             backgroundColor: "#4CAF50",
                                             color: "white",
                                             padding: "6px 12px",
                                             borderRadius: "4px",
-                                            textDecoration: "none"
+                                            border: "none",
+                                            cursor: "pointer"
                                         }}
                                     >
                                         📄 Télécharger
-                                    </a>
+                                    </button>
                                 </td>
                             </tr>
                         ))}

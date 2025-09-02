@@ -5,8 +5,6 @@ const path = require("path");
 const fs = require("fs");
 const nodemailer = require("nodemailer");
 const generatePDF = require("./pdfGenerator");
-
-
 const app = express();
 const PORT = 4000;
 
@@ -15,6 +13,14 @@ app.use(cors());
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/pdfs", express.static(path.join(__dirname, "pdfs")));
+const mongoose = require("mongoose");
+
+mongoose.connect("mongodb://127.0.0.1:27017/TSCouverture", {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+  .then(() => console.log("✅ Connecté à MongoDB"))
+  .catch(err => console.error("❌ Erreur MongoDB :", err));
 
 // ✅ Multer config (upload des photos)
 const storage = multer.diskStorage({

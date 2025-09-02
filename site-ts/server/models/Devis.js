@@ -9,6 +9,7 @@ const devisSchema = new mongoose.Schema({
     prixEstime: Number,
     details: String,
     photos: [String],
+    pdfPath: String, // ✅ si tu veux sauvegarder le PDF
 }, { timestamps: true });
 
 module.exports = mongoose.model("Devis", devisSchema);
