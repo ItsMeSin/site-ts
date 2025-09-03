@@ -2,6 +2,12 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const Devis = require("../models/Devis"); // 👈 ton modèle MongoDB
 const router = express.Router();
+const fs = require("fs");
+const path = require("path");
+const PDFDocument = require("pdfkit");
+const generateStyledPDF = require("../utils/generateStylePDF");
+
+console.log("✅ routes/admin.js chargé");
 
 // 🔑 Clé secrète pour JWT
 const JWT_SECRET = "super_secret_key"; // ⚠️ mets ça dans .env en prod
@@ -65,32 +71,9 @@ router.get("/devis/:id/pdf", verifyToken, async (req, res) => {
         const fileName = `devis-${devis._id}.pdf`;
         const filePath = path.join(__dirname, `../pdfs/${fileName}`);
 
-        if (!fs.existsSync(path.join(__dirname, "../pdfs"))) {
-            fs.mkdirSync(path.join(__dirname, "../pdfs"));
-        }
+        await generateStyledPDF(devis, filePath);
 
-        const doc = new PDFDocument();
-        const stream = fs.createWriteStream(filePath);
-        doc.pipe(stream);
-
-        // Contenu du devis
-        doc.fontSize(20).text("Devis - TS Couverture", { align: "center" });
-        doc.moveDown();
-        doc.fontSize(12).text(`Nom : ${devis.nom}`);
-        doc.text(`Email : ${devis.email}`);
-        doc.text(`Téléphone : ${devis.telephone}`);
-        doc.text(`Service : ${devis.service}`);
-        doc.text(`Quantité : ${devis.quantite || "-"}`);
-        doc.text(`Prix estimé : ${devis.prixEstime} €`);
-        doc.moveDown();
-        doc.text(`Détails : ${devis.details || "Aucun"}`);
-
-        doc.end();
-
-        // Quand le PDF est prêt → téléchargement
-        stream.on("finish", () => {
-            res.download(filePath, fileName);
-        });
+        res.download(filePath, fileName);
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Erreur génération PDF" });
