@@ -12,12 +12,13 @@ export default function ArtisansCouvreurSite() {
     }
 
     const prestations = [
-        "Rénovation de toitures",
-        "Nettoyage / démoussage",
-        "Peinture de façade",
-        "Réparation de tuiles",
-        "Étanchéité & zinguerie",
+        { nom: "Rénovation de toitures", prix: "à partir de 1000€", description: "Remplacement complet ou partiel de votre toiture." },
+        { nom: "Nettoyage / démoussage", prix: "à partir de 500€", description: "Nettoyage haute pression, anti-mousse, hydrofuge." },
+        { nom: "Peinture de façade", prix: "à partir de 700€", description: "Rafraîchissement et protection de vos façades." },
+        { nom: "Réparation de tuiles", prix: "sur devis", description: "Remplacement de tuiles cassées et réparation de fuites." },
+        { nom: "Étanchéité & zinguerie", prix: "sur devis", description: "Pose et entretien de gouttières, chéneaux, bardages." },
     ];
+
 
     const beforeAfterPairs = [
         ["photo1.jpg", "photo2.jpg"],
@@ -121,7 +122,7 @@ export default function ArtisansCouvreurSite() {
     return (
         <div className="site-wrapper">
             <header className="header">
-                <h1>TS COUVERTURE</h1>
+                <h1>TS COUVERTURE PEINTURE</h1>
                 <nav>
                     <a href="#prestations" onClick={handleSmoothScroll}>Prestations</a>
                     <a href="#realisations" onClick={handleSmoothScroll}>Réalisations</a>
@@ -146,8 +147,18 @@ export default function ArtisansCouvreurSite() {
             <section id="prestations" className="section">
                 <h2>Nos Prestations</h2>
                 <div className="cards">
-                    {prestations.map((title, idx) => (
-                        <div key={idx} className="card">{title}</div>
+                    {prestations.map((item, idx) => (
+                        <div key={idx} className="card">
+                            <h3>{item.nom}</h3>
+                            <p className="price">{item.prix}</p>
+                            <p className="description">{item.description}</p>
+                            <button onClick={() => {
+                                document.getElementById("devis").scrollIntoView({ behavior: "smooth" });
+                                setFormData(prev => ({ ...prev, service: item.nom.split(" ")[0] }));
+                            }}>
+                                Demander un devis
+                            </button>
+                        </div>
                     ))}
                 </div>
             </section>
@@ -193,7 +204,7 @@ export default function ArtisansCouvreurSite() {
             </section>
 
             <footer className="footer">
-                &copy; 2025 TS COUVERTURE - Tous droits réservés / Certifié DALEP
+                &copy; 2025 TS COUVERTURE PEINTURE - Tous droits réservés / Certifié DALEP
             </footer>
         </div>
     );
