@@ -4,6 +4,7 @@ function AdminDashboard({ onLogout }) {
     const [devisList, setDevisList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [editingDevis, setEditingDevis] = useState(null);
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -30,6 +31,39 @@ function AdminDashboard({ onLogout }) {
             .catch(() => setError("Erreur lors du chargement des devis"))
             .finally(() => setLoading(false));
     }, [onLogout]);
+
+    const handleUpdateDevis = async (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem("token");
+
+        try {
+            const res = await fetch(
+                `http://localhost:4000/api/admin/devis/${editingDevis._id}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify(editingDevis),
+                }
+            );
+
+            if (!res.ok) throw new Error("Erreur mise à jour");
+            const updated = await res.json();
+
+            // Mets à jour la liste des devis
+            setDevisList((prev) =>
+                prev.map((d) => (d._id === updated._id ? updated : d))
+            );
+
+            setEditingDevis(null);
+            alert("✅ Devis mis à jour !");
+        } catch (err) {
+            console.error(err);
+            alert("❌ Erreur lors de la mise à jour");
+        }
+    };
 
     return (
         <div style={{ padding: "20px" }}>
@@ -64,7 +98,7 @@ function AdminDashboard({ onLogout }) {
                             <th>Prix estimé</th>
                             <th>Photos</th>
                             <th>Date</th>
-                            <th>PDF</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -93,7 +127,7 @@ function AdminDashboard({ onLogout }) {
                                                         objectFit: "cover",
                                                         marginRight: "5px",
                                                         borderRadius: "4px",
-                                                        border: "1px solid #ccc"
+                                                        border: "1px solid #ccc",
                                                     }}
                                                 />
                                             </a>
@@ -105,14 +139,32 @@ function AdminDashboard({ onLogout }) {
                                 <td>{new Date(devis.date).toLocaleDateString()}</td>
                                 <td>
                                     <button
+                                        onClick={() => setEditingDevis(devis)}
+                                        style={{
+                                            backgroundColor: "#2196F3",
+                                            color: "white",
+                                            padding: "6px 12px",
+                                            borderRadius: "4px",
+                                            border: "none",
+                                            cursor: "pointer",
+                                            marginRight: "5px",
+                                        }}
+                                    >
+                                        ✏️ Modifier
+                                    </button>
+
+                                    <button
                                         onClick={async () => {
                                             const token = localStorage.getItem("token");
                                             try {
-                                                const res = await fetch(`http://localhost:4000/api/admin/devis/${devis._id}/pdf`, {
-                                                    headers: {
-                                                        Authorization: `Bearer ${token}`,
-                                                    },
-                                                });
+                                                const res = await fetch(
+                                                    `http://localhost:4000/api/admin/devis/${devis._id}/pdf`,
+                                                    {
+                                                        headers: {
+                                                            Authorization: `Bearer ${token}`,
+                                                        },
+                                                    }
+                                                );
 
                                                 if (!res.ok) {
                                                     throw new Error("Erreur téléchargement PDF");
@@ -138,7 +190,7 @@ function AdminDashboard({ onLogout }) {
                                             padding: "6px 12px",
                                             borderRadius: "4px",
                                             border: "none",
-                                            cursor: "pointer"
+                                            cursor: "pointer",
                                         }}
                                     >
                                         📄 Télécharger
@@ -148,6 +200,99 @@ function AdminDashboard({ onLogout }) {
                         ))}
                     </tbody>
                 </table>
+            )}
+
+            {editingDevis && (
+                <div
+                    style={{
+                        marginTop: "20px",
+                        padding: "20px",
+                        border: "1px solid #ccc",
+                        borderRadius: "6px",
+                        background: "#f9f9f9",
+                    }}
+                >
+                    <h2>Modifier le devis</h2>
+                    <form onSubmit={handleUpdateDevis}>
+                        <label>Service</label>
+                        <input
+                            type="text"
+                            value={editingDevis.service}
+                            onChange={(e) =>
+                                setEditingDevis({
+                                    ...editingDevis,
+                                    service: e.target.value,
+                                })
+                            }
+                        />
+
+                        <label>Quantité</label>
+                        <input
+                            type="number"
+                            value={editingDevis.quantite}
+                            onChange={(e) =>
+                                setEditingDevis({
+                                    ...editingDevis,
+                                    quantite: e.target.value,
+                                })
+                            }
+                        />
+
+                        <label>Prix estimé</label>
+                        <input
+                            type="number"
+                            value={editingDevis.prixEstime}
+                            onChange={(e) =>
+                                setEditingDevis({
+                                    ...editingDevis,
+                                    prixEstime: e.target.value,
+                                })
+                            }
+                        />
+
+                        <label>Détails</label>
+                        <textarea
+                            value={editingDevis.details}
+                            onChange={(e) =>
+                                setEditingDevis({
+                                    ...editingDevis,
+                                    details: e.target.value,
+                                })
+                            }
+                        ></textarea>
+
+                        <div style={{ marginTop: "10px" }}>
+                            <button
+                                type="submit"
+                                style={{
+                                    marginRight: "10px",
+                                    backgroundColor: "#4CAF50",
+                                    color: "white",
+                                    padding: "6px 12px",
+                                    borderRadius: "4px",
+                                    border: "none",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                💾 Sauvegarder
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setEditingDevis(null)}
+                                style={{
+                                    backgroundColor: "#f44336",
+                                    color: "white",
+                                    padding: "6px 12px",
+                                    borderRadius: "4px",
+                                    border: "none",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                ❌ Annuler
+                            </button>
+                        </div>
+                    </form>
+                </div>
             )}
         </div>
     );

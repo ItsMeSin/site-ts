@@ -60,7 +60,36 @@ router.get("/devis", verifyToken, async (req, res) => {
     }
 });
 
-// 📌 Générer un PDF pour un devis
+// 📌 Mise à jour d’un devis par l’artisan
+router.put("/devis/:id", verifyToken, async (req, res) => {
+    try {
+        const { service, quantite, prixEstime, details } = req.body;
+
+        const updatedDevis = await Devis.findByIdAndUpdate(
+            req.params.id,
+            {
+                service,
+                quantite,
+                prixEstime,
+                details,
+                updatedAt: new Date(),
+            },
+            { new: true } // retourne le document mis à jour
+        );
+
+        if (!updatedDevis) {
+            return res.status(404).json({ message: "Devis non trouvé" });
+        }
+
+        res.json(updatedDevis);
+    } catch (err) {
+        console.error("❌ Erreur mise à jour devis :", err);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+});
+
+
+// 📌 Générer un PDF pour un devis et le renvoyer direct
 router.get("/devis/:id/pdf", verifyToken, async (req, res) => {
     try {
         const devis = await Devis.findById(req.params.id);
@@ -68,21 +97,33 @@ router.get("/devis/:id/pdf", verifyToken, async (req, res) => {
             return res.status(404).json({ message: "Devis non trouvé" });
         }
 
-        const fileName = `devis-${devis._id}.pdf`;
-        const filePath = path.join(__dirname, `../pdfs/${fileName}`);
+        const total = (devis.quantite || 1) * (devis.prixEstime || 0);
 
-        if (!fs.existsSync(path.join(__dirname, "../pdfs"))) {
-            fs.mkdirSync(path.join(__dirname, "../pdfs"));
-        }
+        // 📌 Génération date lisible
+        const date = new Date(devis.createdAt).toLocaleDateString("fr-FR", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+        });
+
+        // 📌 Numéro de devis (basé sur MongoDB _id court)
+        const numeroDevis = `DV-${devis._id.toString().slice(-6).toUpperCase()}`;
+
+        // 🔽 Headers HTTP pour forcer le téléchargement
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Content-Disposition", `attachment; filename=${numeroDevis}.pdf`);
 
         const doc = new PDFDocument({ margin: 50 });
-        const stream = fs.createWriteStream(filePath);
-        doc.pipe(stream);
+        doc.pipe(res);
 
         // === HEADER moderne ===
-        doc.rect(0, 0, doc.page.width, 80).fill("#1a73e8"); // bande bleue
+        doc.rect(0, 0, doc.page.width, 80).fill("#1a73e8");
         doc.fillColor("white").font("Helvetica-Bold").fontSize(24).text("TS Couverture", 50, 30);
         doc.font("Helvetica").fontSize(12).text("Devis détaillé", 400, 40, { align: "right" });
+
+        // 📌 Ajout du numéro + date
+        doc.fillColor("white").font("Helvetica-Bold").fontSize(12).text(`N° : ${numeroDevis}`, 50, 60);
+        doc.font("Helvetica").text(`Date : ${date}`, 400, 60, { align: "right" });
 
         doc.moveDown(4);
 
@@ -90,10 +131,10 @@ router.get("/devis/:id/pdf", verifyToken, async (req, res) => {
         doc.fillColor("black").font("Helvetica-Bold").fontSize(14).text("Informations client :");
         doc.moveDown(0.5);
         doc.font("Helvetica").fontSize(12)
-            .text(`👤 Nom : ${devis.nom}`)
-            .text(`📧 Email : ${devis.email}`)
-            .text(`📞 Téléphone : ${devis.telephone}`)
-            .text(`🛠️ Service demandé : ${devis.service}`);
+            .text(`Nom : ${devis.nom}`)
+            .text(`Email : ${devis.email}`)
+            .text(`Téléphone : ${devis.telephone}`)
+            .text(`Service demandé : ${devis.service}`);
         doc.moveDown(2);
 
         // === TABLEAU DES PRESTATIONS ===
@@ -113,9 +154,6 @@ router.get("/devis/:id/pdf", verifyToken, async (req, res) => {
 
         // Contenu du tableau
         const rowY = tableTop + 30;
-        const total = (devis.quantite || 1) * (devis.prixEstime || 0);
-
-        // Fond alterné (gris clair)
         doc.rect(col1 - 10, rowY, 500, 25).fill("#f9f9f9").stroke();
 
         doc.fillColor("black").font("Helvetica").fontSize(12);
@@ -129,24 +167,35 @@ router.get("/devis/:id/pdf", verifyToken, async (req, res) => {
         // === TOTAL GÉNÉRAL ===
         doc.rect(300, doc.y, 200, 40).fill("#e63946").stroke();
         doc.fillColor("white").font("Helvetica-Bold").fontSize(14)
-            .text(`💰 Total général : ${total} €`, 310, doc.y + 12);
-
-        doc.moveDown(5);
+            .text(`Total général : ${total} €`, 310, doc.y + 12);
 
         // === FOOTER élégant ===
         doc.fillColor("#555").font("Helvetica-Oblique").fontSize(10)
             .text("Merci pour votre confiance - TS Couverture", 50, doc.page.height - 50, { align: "center" });
 
-        doc.end();
+        // === SIGNATURE ENTREPRISE ===
+        doc.moveDown(3);
+        doc.font("Helvetica-Bold").fontSize(12).fillColor("black")
+            .text("Signature de l'entreprise :", 50, doc.y + 20);
 
-        stream.on("finish", () => {
-            res.download(filePath, fileName);
-        });
+        // === SIGNATURE AVEC IMAGE ===
+        const signaturePath = path.join(__dirname, "../assets/signature.png");
+        if (fs.existsSync(signaturePath)) {
+            doc.image(signaturePath, 50, doc.y + 20, { width: 150 });
+            doc.font("Helvetica").fontSize(10).fillColor("#333")
+                .text("Signature certifiés", 50, doc.y + 90);
+        } else {
+            doc.font("Helvetica-Oblique").fontSize(10).fillColor("red")
+                .text("⚠️ Signature non disponible", 50, doc.y + 20);
+        }
+
+        doc.end();
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Erreur génération PDF" });
     }
 });
+
 
 
 module.exports = router;
