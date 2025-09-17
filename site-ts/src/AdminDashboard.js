@@ -24,17 +24,28 @@ function AdminDashboard({ onLogout }) {
                 return res.json();
             })
             .then((data) => {
-                if (data) {
-                    setDevisList(data);
-                }
+                if (data) setDevisList(data);
             })
             .catch(() => setError("Erreur lors du chargement des devis"))
             .finally(() => setLoading(false));
     }, [onLogout]);
 
+    // 🔹 Calcul total HT/TVA/TTC
+    const calculerTotaux = (prestations) => {
+        const totalHT = prestations.reduce(
+            (acc, p) => acc + (p.quantite || 0) * (p.prixUnitaire || 0),
+            0
+        );
+        const tva = totalHT * 0.2;
+        const totalTTC = totalHT + tva;
+        return { totalHT, tva, totalTTC };
+    };
+
     const handleUpdateDevis = async (e) => {
         e.preventDefault();
         const token = localStorage.getItem("token");
+
+        const { totalHT, tva, totalTTC } = calculerTotaux(editingDevis.prestations);
 
         try {
             const res = await fetch(
@@ -45,14 +56,13 @@ function AdminDashboard({ onLogout }) {
                         "Content-Type": "application/json",
                         Authorization: `Bearer ${token}`,
                     },
-                    body: JSON.stringify(editingDevis),
+                    body: JSON.stringify({ ...editingDevis, totalHT, tva, totalTTC }),
                 }
             );
 
             if (!res.ok) throw new Error("Erreur mise à jour");
             const updated = await res.json();
 
-            // Mets à jour la liste des devis
             setDevisList((prev) =>
                 prev.map((d) => (d._id === updated._id ? updated : d))
             );
@@ -63,6 +73,24 @@ function AdminDashboard({ onLogout }) {
             console.error(err);
             alert("❌ Erreur lors de la mise à jour");
         }
+    };
+
+    // 🔹 Ajouter une prestation
+    const addPrestation = () => {
+        setEditingDevis({
+            ...editingDevis,
+            prestations: [
+                ...(editingDevis.prestations || []),
+                { designation: "", quantite: 1, prixUnitaire: 0 },
+            ],
+        });
+    };
+
+    // 🔹 Supprimer une prestation
+    const removePrestation = (index) => {
+        const newPrestations = [...editingDevis.prestations];
+        newPrestations.splice(index, 1);
+        setEditingDevis({ ...editingDevis, prestations: newPrestations });
     };
 
     return (
@@ -94,9 +122,9 @@ function AdminDashboard({ onLogout }) {
                             <th>Nom</th>
                             <th>Email</th>
                             <th>Téléphone</th>
-                            <th>Service</th>
-                            <th>Prix estimé</th>
-                            <th>Photos</th>
+                            <th>Prestations</th>
+                            <th>Total HT</th>
+                            <th>Total TTC</th>
                             <th>Date</th>
                             <th>Actions</th>
                         </tr>
@@ -107,36 +135,16 @@ function AdminDashboard({ onLogout }) {
                                 <td>{devis.nom}</td>
                                 <td>{devis.email}</td>
                                 <td>{devis.telephone}</td>
-                                <td>{devis.service}</td>
-                                <td>{devis.prixEstime} €</td>
                                 <td>
-                                    {devis.photos && devis.photos.length > 0 ? (
-                                        devis.photos.map((photo, index) => (
-                                            <a
-                                                key={index}
-                                                href={`http://localhost:4000${photo}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                <img
-                                                    src={`http://localhost:4000${photo}`}
-                                                    alt={`Photo ${index + 1}`}
-                                                    style={{
-                                                        width: "60px",
-                                                        height: "60px",
-                                                        objectFit: "cover",
-                                                        marginRight: "5px",
-                                                        borderRadius: "4px",
-                                                        border: "1px solid #ccc",
-                                                    }}
-                                                />
-                                            </a>
-                                        ))
-                                    ) : (
-                                        <span>Aucune</span>
-                                    )}
+                                    {devis.prestations?.map((p, i) => (
+                                        <div key={i}>
+                                            {p.designation} ({p.quantite} × {p.prixUnitaire}€)
+                                        </div>
+                                    ))}
                                 </td>
-                                <td>{new Date(devis.date).toLocaleDateString()}</td>
+                                <td>{(devis.totalHT || 0).toFixed(2)} €</td>
+                                <td>{(devis.totalTTC || 0).toFixed(2)} €</td>
+                                <td>{new Date(devis.createdAt).toLocaleDateString()}</td>
                                 <td>
                                     <button
                                         onClick={() => setEditingDevis(devis)}
@@ -150,9 +158,8 @@ function AdminDashboard({ onLogout }) {
                                             marginRight: "5px",
                                         }}
                                     >
-                                        ✏️ Modifier
+                                        Modifier
                                     </button>
-
                                     <button
                                         onClick={async () => {
                                             const token = localStorage.getItem("token");
@@ -160,15 +167,10 @@ function AdminDashboard({ onLogout }) {
                                                 const res = await fetch(
                                                     `http://localhost:4000/api/admin/devis/${devis._id}/pdf`,
                                                     {
-                                                        headers: {
-                                                            Authorization: `Bearer ${token}`,
-                                                        },
+                                                        headers: { Authorization: `Bearer ${token}` },
                                                     }
                                                 );
-
-                                                if (!res.ok) {
-                                                    throw new Error("Erreur téléchargement PDF");
-                                                }
+                                                if (!res.ok) throw new Error("Erreur PDF");
 
                                                 const blob = await res.blob();
                                                 const url = window.URL.createObjectURL(blob);
@@ -181,7 +183,6 @@ function AdminDashboard({ onLogout }) {
                                                 window.URL.revokeObjectURL(url);
                                             } catch (err) {
                                                 alert("Impossible de télécharger le PDF");
-                                                console.error(err);
                                             }
                                         }}
                                         style={{
@@ -193,7 +194,7 @@ function AdminDashboard({ onLogout }) {
                                             cursor: "pointer",
                                         }}
                                     >
-                                        📄 Télécharger
+                                        Télécharger PDF
                                     </button>
                                 </td>
                             </tr>
@@ -214,54 +215,63 @@ function AdminDashboard({ onLogout }) {
                 >
                     <h2>Modifier le devis</h2>
                     <form onSubmit={handleUpdateDevis}>
-                        <label>Service</label>
-                        <input
-                            type="text"
-                            value={editingDevis.service}
-                            onChange={(e) =>
-                                setEditingDevis({
-                                    ...editingDevis,
-                                    service: e.target.value,
-                                })
-                            }
-                        />
+                        <h3>Prestations</h3>
+                        {editingDevis.prestations?.map((p, index) => (
+                            <div key={index} style={{ marginBottom: "10px" }}>
+                                <input
+                                    type="text"
+                                    placeholder="Désignation"
+                                    value={p.designation}
+                                    onChange={(e) => {
+                                        const newPrestations = [...editingDevis.prestations];
+                                        newPrestations[index].designation = e.target.value;
+                                        setEditingDevis({
+                                            ...editingDevis,
+                                            prestations: newPrestations,
+                                        });
+                                    }}
+                                />
+                                <input
+                                    type="number"
+                                    placeholder="Quantité"
+                                    value={p.quantite}
+                                    onChange={(e) => {
+                                        const newPrestations = [...editingDevis.prestations];
+                                        newPrestations[index].quantite = Number(e.target.value);
+                                        setEditingDevis({
+                                            ...editingDevis,
+                                            prestations: newPrestations,
+                                        });
+                                    }}
+                                />
+                                <input
+                                    type="number"
+                                    placeholder="Prix unitaire"
+                                    value={p.prixUnitaire}
+                                    onChange={(e) => {
+                                        const newPrestations = [...editingDevis.prestations];
+                                        newPrestations[index].prixUnitaire = Number(e.target.value);
+                                        setEditingDevis({
+                                            ...editingDevis,
+                                            prestations: newPrestations,
+                                        });
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => removePrestation(index)}
+                                    style={{ marginLeft: "10px", color: "red" }}
+                                >
+                                    Supprimer
+                                </button>
+                            </div>
+                        ))}
 
-                        <label>Quantité</label>
-                        <input
-                            type="number"
-                            value={editingDevis.quantite}
-                            onChange={(e) =>
-                                setEditingDevis({
-                                    ...editingDevis,
-                                    quantite: e.target.value,
-                                })
-                            }
-                        />
+                        <button type="button" onClick={addPrestation}>
+                            ➕ Ajouter prestation
+                        </button>
 
-                        <label>Prix estimé</label>
-                        <input
-                            type="number"
-                            value={editingDevis.prixEstime}
-                            onChange={(e) =>
-                                setEditingDevis({
-                                    ...editingDevis,
-                                    prixEstime: e.target.value,
-                                })
-                            }
-                        />
-
-                        <label>Détails</label>
-                        <textarea
-                            value={editingDevis.details}
-                            onChange={(e) =>
-                                setEditingDevis({
-                                    ...editingDevis,
-                                    details: e.target.value,
-                                })
-                            }
-                        ></textarea>
-
-                        <div style={{ marginTop: "10px" }}>
+                        <div style={{ marginTop: "20px" }}>
                             <button
                                 type="submit"
                                 style={{
@@ -274,7 +284,7 @@ function AdminDashboard({ onLogout }) {
                                     cursor: "pointer",
                                 }}
                             >
-                                💾 Sauvegarder
+                                Sauvegarder
                             </button>
                             <button
                                 type="button"
@@ -288,7 +298,7 @@ function AdminDashboard({ onLogout }) {
                                     cursor: "pointer",
                                 }}
                             >
-                                ❌ Annuler
+                                Annuler
                             </button>
                         </div>
                     </form>

@@ -14,58 +14,53 @@ const fonts = {
 
 const printer = new PdfPrinter(fonts);
 
-function generatePDF(data, outputPath) {
+function generatePDF(devis, outputPath) {
     return new Promise((resolve, reject) => {
-        const prestations = data.prestations || []; // ✅ fallback si undefined
+        const prestations = devis.prestations || [];
+
+        // Numéro et date du devis
+        const numeroDevis = `DEV-${devis._id.toString().slice(-6).toUpperCase()}`;
+        const dateDevis = new Date(devis.createdAt).toLocaleDateString("fr-FR");
 
         const docDefinition = {
             content: [
-                // --- Bandeau avec Logo + Titre ---
+                // --- Bandeau bleu ---
                 {
                     table: {
-                        widths: ["auto", "*"],
+                        widths: ["*", "auto"],
                         body: [
                             [
-                                {
-                                    image: path.resolve(__dirname, "logo.jpg"),
-                                    width: 80,
-                                },
-                                {
-                                    text: "DEVIS",
-                                    style: "devisTitle",
-                                    alignment: "right",
-                                    margin: [0, 20, 10, 0],
-                                },
+                                { text: "TS Couverture", style: "companyName" },
+                                { text: "DEVIS", style: "devisTitle", alignment: "right" },
                             ],
                         ],
                     },
                     layout: "noBorders",
-                    fillColor: "#004080", // bleu foncé
                 },
 
                 { text: "\n" },
 
-                // --- Infos Entreprise + Client ---
+                // --- Infos Client + Devis ---
                 {
                     columns: [
                         [
                             { text: "Entreprise TS COUVERTURE", style: "title" },
                             { text: "15 rue de la République\n75000 Paris", style: "small" },
-                            { text: "Tel: 01 02 03 04 05 | contact@stonyrenov.com", style: "small" },
+                            { text: "Tel: 01 02 03 04 05 | contact@tscouverture.fr", style: "small" },
                         ],
                         [
-                            { text: `Devis N°: ${data.devisNumero || "0001"}`, style: "header" },
-                            { text: `Date: ${new Date().toLocaleDateString()}`, style: "small" },
-                            { text: `Client: ${data.nom}`, style: "small" },
-                            { text: `Email: ${data.email}`, style: "small" },
-                            { text: `Téléphone: ${data.telephone}`, style: "small" },
+                            { text: `Devis N°: ${numeroDevis}`, style: "header", alignment: "right" },
+                            { text: `Date: ${dateDevis}`, style: "small", alignment: "right" },
+                            { text: `Client: ${devis.nom}`, style: "small", alignment: "right" },
+                            { text: `Email: ${devis.email}`, style: "small", alignment: "right" },
+                            { text: `Téléphone: ${devis.telephone}`, style: "small", alignment: "right" },
                         ],
                     ],
                 },
 
-                { text: "\n" },
+                { text: "\n\n" },
 
-                // --- Tableau prestations ---
+                // --- Tableau Prestations ---
                 {
                     table: {
                         headerRows: 1,
@@ -98,30 +93,34 @@ function generatePDF(data, outputPath) {
                     table: {
                         widths: ["*", "auto"],
                         body: [
-                            ["Total HT", `${(data.totalHT || 0).toFixed(2)} €`],
-                            ["TVA (10%)", `${(data.tva || 0).toFixed(2)} €`],
+                            ["Total HT", `${(devis.totalHT || 0).toFixed(2)} €`],
+                            ["TVA (20%)", `${(devis.tva || 0).toFixed(2)} €`],
                             [
-                                { text: "TOTAL TTC", bold: true, fillColor: "#004080", color: "white" },
-                                { text: `${(data.totalTTC || 0).toFixed(2)} €`, bold: true, fillColor: "#004080", color: "white" },
+                                { text: "TOTAL TTC", bold: true, fillColor: "#1a73e8", color: "white" },
+                                { text: `${(devis.totalTTC || 0).toFixed(2)} €`, bold: true, fillColor: "#1a73e8", color: "white" },
                             ],
                         ],
                     },
                     layout: "lightHorizontalLines",
                 },
 
-                { text: "\n\nConditions de règlement : acompte 30% à la commande, solde à la livraison.", style: "small" },
-                { text: "Merci de nous retourner ce devis signé avec la mention « Bon pour accord »", style: "small" },
+                { text: "\n\n" },
+
+                // --- Conditions ---
+                { text: "Conditions de règlement :", style: "title" },
+                { text: "• Acompte de 30% à la commande\n• Solde à la livraison", style: "small" },
+                { text: "\nMerci de nous retourner ce devis signé avec la mention « Bon pour accord »", style: "small" },
             ],
 
             styles: {
-                devisTitle: { fontSize: 22, bold: true, color: "white" },
-                title: { fontSize: 14, bold: true },
-                header: { fontSize: 12, bold: true, margin: [0, 5, 0, 5] },
+                companyName: { fontSize: 16, bold: true, color: "#1a73e8" },
+                devisTitle: { fontSize: 22, bold: true, color: "#1a73e8" },
+                title: { fontSize: 13, bold: true, margin: [0, 5, 0, 5] },
+                header: { fontSize: 12, bold: true, margin: [0, 2, 0, 2] },
                 small: { fontSize: 9 },
-                tableHeader: { bold: true, fillColor: "#004080", color: "white" },
+                tableHeader: { bold: true, fillColor: "#1a73e8", color: "white" },
             },
         };
-
 
         try {
             const pdfDoc = printer.createPdfKitDocument(docDefinition);

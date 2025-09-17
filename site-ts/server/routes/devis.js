@@ -23,34 +23,50 @@ const upload = multer({ storage });
 // 📌 Route création devis
 router.post("/", upload.array("photos"), async (req, res) => {
     try {
-        const { nom, email, telephone, service, quantite, prixEstime, details } = req.body;
+        const { nom, email, telephone, details, prestations } = req.body;
         const photos = req.files.map(file => `/uploads/${file.filename}`);
 
-        // 1️⃣ Enregistrement MongoDB
+        // ⚠️ prestations vient du front => il faut la parser si envoyée en JSON
+        let parsedPrestations = [];
+        if (prestations) {
+            parsedPrestations = JSON.parse(prestations);
+        }
+
+        // 1️⃣ Calcul HT, TVA et TTC
+        const totalHT = parsedPrestations.reduce(
+            (sum, p) => sum + (p.quantite || 0) * (p.prixUnitaire || 0),
+            0
+        );
+        const tauxTVA = 0.20; // 20%
+        const tva = totalHT * tauxTVA;
+        const totalTTC = totalHT + tva;
+
+        // 2️⃣ Enregistrement MongoDB
         const newDevis = new Devis({
             nom,
             email,
             telephone,
-            service,
-            quantite,
-            prixEstime,
             details,
             photos,
+            prestations: parsedPrestations,
+            totalHT,
+            tva,
+            totalTTC,
         });
         await newDevis.save();
 
-        // 2️⃣ Générer PDF et le sauvegarder
+        // 3️⃣ Générer PDF et le sauvegarder
         const pdfDir = path.join(__dirname, "../pdfs");
         if (!fs.existsSync(pdfDir)) fs.mkdirSync(pdfDir, { recursive: true });
 
         const pdfPath = path.join(pdfDir, `devis-${newDevis._id}.pdf`);
         await generatePDF(newDevis, pdfPath);
 
-        // 3️⃣ Mettre à jour avec le chemin PDF
+        // 4️⃣ Mettre à jour avec le chemin PDF
         newDevis.pdfPath = `/pdfs/devis-${newDevis._id}.pdf`;
         await newDevis.save();
 
-        // 4️⃣ Réponse front
+        // 5️⃣ Réponse front
         res.json({
             message: "✅ Devis enregistré et PDF généré",
             devis: newDevis,

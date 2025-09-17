@@ -63,18 +63,28 @@ router.get("/devis", verifyToken, async (req, res) => {
 // 📌 Mise à jour d’un devis par l’artisan
 router.put("/devis/:id", verifyToken, async (req, res) => {
     try {
-        const { service, quantite, prixEstime, details } = req.body;
+        const { prestations = [], details } = req.body;
+
+        // Calculs automatiques
+        const totalHT = prestations.reduce(
+            (sum, p) => sum + (p.quantite || 0) * (p.prixUnitaire || 0),
+            0
+        );
+        const tauxTVA = 0.20; // 20 %
+        const tva = totalHT * tauxTVA;
+        const totalTTC = totalHT + tva;
 
         const updatedDevis = await Devis.findByIdAndUpdate(
             req.params.id,
             {
-                service,
-                quantite,
-                prixEstime,
+                prestations,
                 details,
+                totalHT,
+                tva,
+                totalTTC,
                 updatedAt: new Date(),
             },
-            { new: true } // retourne le document mis à jour
+            { new: true }
         );
 
         if (!updatedDevis) {
@@ -89,7 +99,8 @@ router.put("/devis/:id", verifyToken, async (req, res) => {
 });
 
 
-// 📌 Générer un PDF pour un devis et le renvoyer direct
+
+// 📌 Générer un PDF pour un devis (mis à jour avec numéro + date)
 router.get("/devis/:id/pdf", verifyToken, async (req, res) => {
     try {
         const devis = await Devis.findById(req.params.id);
@@ -97,44 +108,42 @@ router.get("/devis/:id/pdf", verifyToken, async (req, res) => {
             return res.status(404).json({ message: "Devis non trouvé" });
         }
 
-        const total = (devis.quantite || 1) * (devis.prixEstime || 0);
+        const fileName = `devis-${devis._id}.pdf`;
+        const filePath = path.join(__dirname, `../pdfs/${fileName}`);
 
-        // 📌 Génération date lisible
-        const date = new Date(devis.createdAt).toLocaleDateString("fr-FR", {
-            day: "2-digit",
-            month: "long",
-            year: "numeric",
-        });
-
-        // 📌 Numéro de devis (basé sur MongoDB _id court)
-        const numeroDevis = `DV-${devis._id.toString().slice(-6).toUpperCase()}`;
-
-        // 🔽 Headers HTTP pour forcer le téléchargement
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader("Content-Disposition", `attachment; filename=${numeroDevis}.pdf`);
+        if (!fs.existsSync(path.join(__dirname, "../pdfs"))) {
+            fs.mkdirSync(path.join(__dirname, "../pdfs"));
+        }
 
         const doc = new PDFDocument({ margin: 50 });
-        doc.pipe(res);
+        const stream = fs.createWriteStream(filePath);
+        doc.pipe(stream);
 
         // === HEADER moderne ===
         doc.rect(0, 0, doc.page.width, 80).fill("#1a73e8");
         doc.fillColor("white").font("Helvetica-Bold").fontSize(24).text("TS Couverture", 50, 30);
         doc.font("Helvetica").fontSize(12).text("Devis détaillé", 400, 40, { align: "right" });
 
-        // 📌 Ajout du numéro + date
-        doc.fillColor("white").font("Helvetica-Bold").fontSize(12).text(`N° : ${numeroDevis}`, 50, 60);
-        doc.font("Helvetica").text(`Date : ${date}`, 400, 60, { align: "right" });
-
         doc.moveDown(4);
 
+        // === INFOS DEVIS ===
+        const numeroDevis = `DEV-${devis._id.toString().slice(-6).toUpperCase()}`;
+        const dateDevis = new Date(devis.createdAt).toLocaleDateString("fr-FR");
+
+        doc.fillColor("black").font("Helvetica-Bold").fontSize(14).text("Informations du devis :");
+        doc.moveDown(0.5);
+        doc.font("Helvetica").fontSize(12)
+            .text(`Numéro de devis : ${numeroDevis}`)
+            .text(`Date : ${dateDevis}`);
+        doc.moveDown(2);
+
         // === SECTION CLIENT ===
-        doc.fillColor("black").font("Helvetica-Bold").fontSize(14).text("Informations client :");
+        doc.font("Helvetica-Bold").fontSize(14).text("Informations client :");
         doc.moveDown(0.5);
         doc.font("Helvetica").fontSize(12)
             .text(`Nom : ${devis.nom}`)
             .text(`Email : ${devis.email}`)
-            .text(`Téléphone : ${devis.telephone}`)
-            .text(`Service demandé : ${devis.service}`);
+            .text(`Téléphone : ${devis.telephone}`);
         doc.moveDown(2);
 
         // === TABLEAU DES PRESTATIONS ===
@@ -154,8 +163,9 @@ router.get("/devis/:id/pdf", verifyToken, async (req, res) => {
 
         // Contenu du tableau
         const rowY = tableTop + 30;
-        doc.rect(col1 - 10, rowY, 500, 25).fill("#f9f9f9").stroke();
+        const total = (devis.quantite || 1) * (devis.prixEstime || 0);
 
+        doc.rect(col1 - 10, rowY, 500, 25).fill("#f9f9f9").stroke();
         doc.fillColor("black").font("Helvetica").fontSize(12);
         doc.text(devis.service || "-", col1, rowY + 7);
         doc.text(devis.quantite || "1", col2, rowY + 7);
@@ -163,6 +173,14 @@ router.get("/devis/:id/pdf", verifyToken, async (req, res) => {
         doc.text(`${total || 0} €`, col4, rowY + 7);
 
         doc.moveDown(4);
+
+        // === DÉTAILS SUPPLÉMENTAIRES ===
+        if (devis.details) {
+            doc.font("Helvetica-Bold").fontSize(13).fillColor("#1a73e8").text("Informations complémentaires :");
+            doc.moveDown(0.5);
+            doc.font("Helvetica").fontSize(12).fillColor("black").text(devis.details, { align: "left" });
+            doc.moveDown(2);
+        }
 
         // === TOTAL GÉNÉRAL ===
         doc.rect(300, doc.y, 200, 40).fill("#e63946").stroke();
@@ -173,28 +191,17 @@ router.get("/devis/:id/pdf", verifyToken, async (req, res) => {
         doc.fillColor("#555").font("Helvetica-Oblique").fontSize(10)
             .text("Merci pour votre confiance - TS Couverture", 50, doc.page.height - 50, { align: "center" });
 
-        // === SIGNATURE ENTREPRISE ===
-        doc.moveDown(3);
-        doc.font("Helvetica-Bold").fontSize(12).fillColor("black")
-            .text("Signature de l'entreprise :", 50, doc.y + 20);
-
-        // === SIGNATURE AVEC IMAGE ===
-        const signaturePath = path.join(__dirname, "../assets/signature.png");
-        if (fs.existsSync(signaturePath)) {
-            doc.image(signaturePath, 50, doc.y + 20, { width: 150 });
-            doc.font("Helvetica").fontSize(10).fillColor("#333")
-                .text("Signature certifiés", 50, doc.y + 90);
-        } else {
-            doc.font("Helvetica-Oblique").fontSize(10).fillColor("red")
-                .text("⚠️ Signature non disponible", 50, doc.y + 20);
-        }
-
         doc.end();
+
+        stream.on("finish", () => {
+            res.download(filePath, fileName);
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Erreur génération PDF" });
     }
 });
+
 
 
 
