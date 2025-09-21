@@ -3,7 +3,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const Devis = require("../models/Devis");
-const generatePDF = require("../pdfGenerator"); // ton fichier de génération PDF
+const generatePDF = require("../utils/generateStylePDF"); // Assure-toi que le chemin est correct
 
 const router = express.Router();
 
@@ -20,28 +20,25 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// 📌 Route création devis
+// ✅ Route pour créer un devis
 router.post("/", upload.array("photos"), async (req, res) => {
     try {
         const { nom, email, telephone, details, prestations } = req.body;
         const photos = req.files.map(file => `/uploads/${file.filename}`);
 
-        // ⚠️ prestations vient du front => il faut la parser si envoyée en JSON
         let parsedPrestations = [];
         if (prestations) {
             parsedPrestations = JSON.parse(prestations);
         }
 
-        // 1️⃣ Calcul HT, TVA et TTC
         const totalHT = parsedPrestations.reduce(
             (sum, p) => sum + (p.quantite || 0) * (p.prixUnitaire || 0),
             0
         );
-        const tauxTVA = 0.20; // 20%
+        const tauxTVA = 0.20;
         const tva = totalHT * tauxTVA;
         const totalTTC = totalHT + tva;
 
-        // 2️⃣ Enregistrement MongoDB
         const newDevis = new Devis({
             nom,
             email,
@@ -53,31 +50,78 @@ router.post("/", upload.array("photos"), async (req, res) => {
             tva,
             totalTTC,
         });
+
         await newDevis.save();
 
-        // 3️⃣ Générer PDF et le sauvegarder
-        const pdfDir = path.join(__dirname, "../pdfs");
-        if (!fs.existsSync(pdfDir)) fs.mkdirSync(pdfDir, { recursive: true });
-
-        const pdfPath = path.join(pdfDir, `devis-${newDevis._id}.pdf`);
-        await generatePDF(newDevis, pdfPath);
-
-        // 4️⃣ Mettre à jour avec le chemin PDF
-        newDevis.pdfPath = `/pdfs/devis-${newDevis._id}.pdf`;
-        await newDevis.save();
-
-        // 5️⃣ Réponse front
-        res.json({
-            message: "✅ Devis enregistré et PDF généré",
-            devis: newDevis,
-        });
+        res.json({ message: "✅ Devis créé avec succès", devis: newDevis });
     } catch (err) {
-        console.error("❌ Erreur lors de la création du devis :", err);
+        console.error("❌ Erreur création devis :", err);
         res.status(500).json({ error: "Erreur serveur lors de la création du devis" });
     }
 });
 
-// 📌 Route GET pour tous les devis (admin)
+// ✅ Route pour récupérer tous les devis (admin ou test)
+router.get("/", async (req, res) => {
+    try {
+        const devis = await Devis.find().sort({ createdAt: -1 });
+        res.json(devis);
+    } catch (err) {
+        res.status(500).json({ error: "Erreur serveur" });
+    }
+});
+
+module.exports = router;
+
+
+/* ------------------------- 📌 MODIFIER UN DEVIS ------------------------- */
+router.put("/:id", upload.array("photos"), async (req, res) => {
+    try {
+        const { nom, email, telephone, details, prestations } = req.body;
+        const devis = await Devis.findById(req.params.id);
+        if (!devis) return res.status(404).json({ error: "Devis introuvable" });
+
+        // Champs simples
+        devis.nom = nom || devis.nom;
+        devis.email = email || devis.email;
+        devis.telephone = telephone || devis.telephone;
+        devis.details = details || devis.details;
+
+        // Prestations
+        if (prestations) {
+            devis.prestations = JSON.parse(prestations);
+        }
+
+        // Photos si re-upload
+        if (req.files && req.files.length > 0) {
+            devis.photos = req.files.map(file => `/uploads/${file.filename}`);
+        }
+
+        // Recalcul des totaux
+        const totalHT = devis.prestations.reduce(
+            (sum, p) => sum + (p.quantite || 0) * (p.prixUnitaire || 0),
+            0
+        );
+        const tauxTVA = 0.20;
+        devis.totalHT = totalHT;
+        devis.tva = totalHT * tauxTVA;
+        devis.totalTTC = totalHT + devis.tva;
+
+        // Sauvegarde + régénération PDF
+        await devis.save();
+        const pdfPath = path.join(__dirname, "../pdfs", `devis-${devis._id}.pdf`);
+        await generatePDF(devis, pdfPath);
+
+        devis.pdfPath = `/pdfs/devis-${devis._id}.pdf`;
+        await devis.save();
+
+        res.json({ message: "✅ Devis mis à jour et PDF régénéré", devis });
+    } catch (err) {
+        console.error("❌ Erreur update devis :", err);
+        res.status(500).json({ error: "Erreur serveur update devis" });
+    }
+});
+
+/* ------------------------- 📌 GET TOUS LES DEVIS ------------------------- */
 router.get("/", async (req, res) => {
     try {
         const devis = await Devis.find().sort({ createdAt: -1 });

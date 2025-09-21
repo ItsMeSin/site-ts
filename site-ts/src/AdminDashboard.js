@@ -124,6 +124,7 @@ function AdminDashboard({ onLogout }) {
                             <th>Téléphone</th>
                             <th>Prestations</th>
                             <th>Total HT</th>
+                            <th>TVA</th>
                             <th>Total TTC</th>
                             <th>Date</th>
                             <th>Actions</th>
@@ -143,6 +144,7 @@ function AdminDashboard({ onLogout }) {
                                     ))}
                                 </td>
                                 <td>{(devis.totalHT || 0).toFixed(2)} €</td>
+                                <td>{(devis.tva || 0).toFixed(2)} €</td>
                                 <td>{(devis.totalTTC || 0).toFixed(2)} €</td>
                                 <td>{new Date(devis.createdAt).toLocaleDateString()}</td>
                                 <td>

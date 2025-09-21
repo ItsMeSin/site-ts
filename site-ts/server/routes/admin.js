@@ -100,7 +100,7 @@ router.put("/devis/:id", verifyToken, async (req, res) => {
 
 
 
-// 📌 Générer un PDF pour un devis (mis à jour avec numéro + date)
+// 📌 Générer un PDF pour un devis (corrigé avec prestations)
 router.get("/devis/:id/pdf", verifyToken, async (req, res) => {
     try {
         const devis = await Devis.findById(req.params.id);
@@ -119,7 +119,7 @@ router.get("/devis/:id/pdf", verifyToken, async (req, res) => {
         const stream = fs.createWriteStream(filePath);
         doc.pipe(stream);
 
-        // === HEADER moderne ===
+        // === HEADER ===
         doc.rect(0, 0, doc.page.width, 80).fill("#1a73e8");
         doc.fillColor("white").font("Helvetica-Bold").fontSize(24).text("TS Couverture", 50, 30);
         doc.font("Helvetica").fontSize(12).text("Devis détaillé", 400, 40, { align: "right" });
@@ -137,7 +137,7 @@ router.get("/devis/:id/pdf", verifyToken, async (req, res) => {
             .text(`Date : ${dateDevis}`);
         doc.moveDown(2);
 
-        // === SECTION CLIENT ===
+        // === CLIENT ===
         doc.font("Helvetica-Bold").fontSize(14).text("Informations client :");
         doc.moveDown(0.5);
         doc.font("Helvetica").fontSize(12)
@@ -161,33 +161,36 @@ router.get("/devis/:id/pdf", verifyToken, async (req, res) => {
         doc.text("PU (€)", col3, tableTop + 7);
         doc.text("Total (€)", col4, tableTop + 7);
 
-        // Contenu du tableau
-        const rowY = tableTop + 30;
-        const total = (devis.quantite || 1) * (devis.prixEstime || 0);
-
-        doc.rect(col1 - 10, rowY, 500, 25).fill("#f9f9f9").stroke();
+        let y = tableTop + 30;
         doc.fillColor("black").font("Helvetica").fontSize(12);
-        doc.text(devis.service || "-", col1, rowY + 7);
-        doc.text(devis.quantite || "1", col2, rowY + 7);
-        doc.text(`${devis.prixEstime || 0} €`, col3, rowY + 7);
-        doc.text(`${total || 0} €`, col4, rowY + 7);
+
+        let totalHT = 0;
+
+        devis.prestations.forEach((p) => {
+            const total = (p.quantite || 0) * (p.prixUnitaire || 0);
+            totalHT += total;
+
+            doc.text(p.designation || "-", col1, y + 7);
+            doc.text(p.quantite || "0", col2, y + 7);
+            doc.text(`${p.prixUnitaire || 0} €`, col3, y + 7);
+            doc.text(`${total.toFixed(2)} €`, col4, y + 7);
+
+            y += 25;
+        });
+
+        const tva = totalHT * 0.2;
+        const totalTTC = totalHT + tva;
 
         doc.moveDown(4);
 
-        // === DÉTAILS SUPPLÉMENTAIRES ===
-        if (devis.details) {
-            doc.font("Helvetica-Bold").fontSize(13).fillColor("#1a73e8").text("Informations complémentaires :");
-            doc.moveDown(0.5);
-            doc.font("Helvetica").fontSize(12).fillColor("black").text(devis.details, { align: "left" });
-            doc.moveDown(2);
-        }
-
         // === TOTAL GÉNÉRAL ===
-        doc.rect(300, doc.y, 200, 40).fill("#e63946").stroke();
+        doc.rect(300, doc.y, 200, 60).fill("#e63946").stroke();
         doc.fillColor("white").font("Helvetica-Bold").fontSize(14)
-            .text(`Total général : ${total} €`, 310, doc.y + 12);
+            .text(`HT : ${totalHT.toFixed(2)} €`, 310, doc.y + 10)
+            .text(`TVA (20%) : ${tva.toFixed(2)} €`, 310, doc.y + 30)
+            .text(`TTC : ${totalTTC.toFixed(2)} €`, 310, doc.y + 50);
 
-        // === FOOTER élégant ===
+        // === FOOTER ===
         doc.fillColor("#555").font("Helvetica-Oblique").fontSize(10)
             .text("Merci pour votre confiance - TS Couverture", 50, doc.page.height - 50, { align: "center" });
 

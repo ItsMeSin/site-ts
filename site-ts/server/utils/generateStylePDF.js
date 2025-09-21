@@ -58,38 +58,44 @@ function generateStyledPDF(devis, filePath) {
         // En-têtes
         doc
             .fontSize(12)
-            .text("Désignation", itemX, tableTop, { bold: true })
+            .fillColor("#000")
+            .text("Désignation", itemX, tableTop)
             .text("Quantité", quantityX, tableTop)
             .text("PU (€)", unitPriceX, tableTop)
             .text("Total (€)", totalX, tableTop);
 
         doc.moveDown();
 
-        let totalGeneral = 0;
+        let totalHT = 0;
         let y = tableTop + 20;
 
         devis.prestations.forEach((p) => {
             const total = (p.quantite || 0) * (p.prixUnitaire || 0);
-            totalGeneral += total;
+            totalHT += total;
 
             doc
                 .fontSize(12)
                 .text(p.designation, itemX, y)
                 .text(p.quantite, quantityX, y)
-                .text(`${p.prixUnitaire.toFixed(2)}`, unitPriceX, y)
-                .text(`${total.toFixed(2)}`, totalX, y);
+                .text(`${p.prixUnitaire.toFixed(2)} €`, unitPriceX, y)
+                .text(`${total.toFixed(2)} €`, totalX, y);
 
             y += 20;
         });
 
-        // Ligne total général
+        // === CALCULS TVA / TTC ===
+        const tauxTVA = 0.20;
+        const tva = totalHT * tauxTVA;
+        const totalTTC = totalHT + tva;
+
+        doc.moveDown(2);
+
         doc
             .fontSize(12)
             .fillColor("#000")
-            .text("TOTAL", unitPriceX, y + 10)
-            .text(`${totalGeneral.toFixed(2)} €`, totalX, y + 10);
-
-        doc.moveDown(2);
+            .text(`Sous-total HT : ${totalHT.toFixed(2)} €`, { align: "right" })
+            .text(`TVA (20%) : ${tva.toFixed(2)} €`, { align: "right" })
+            .text(`Total TTC : ${totalTTC.toFixed(2)} €`, { align: "right" });
 
         // === PIED DE PAGE ===
         doc.moveDown(6);
