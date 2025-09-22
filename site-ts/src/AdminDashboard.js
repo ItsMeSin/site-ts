@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import "./AdminDashboard.css";
 
 function AdminDashboard({ onLogout }) {
     const [devisList, setDevisList] = useState([]);
@@ -93,6 +94,27 @@ function AdminDashboard({ onLogout }) {
         setEditingDevis({ ...editingDevis, prestations: newPrestations });
     };
 
+    // 🔹 Supprimer un devis
+    const deleteDevis = async (id) => {
+        if (!window.confirm("Voulez-vous vraiment supprimer ce devis ?")) return;
+
+        const token = localStorage.getItem("token");
+        try {
+            const res = await fetch(`http://localhost:4000/api/admin/devis/${id}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (!res.ok) throw new Error("Erreur suppression");
+
+            setDevisList((prev) => prev.filter((d) => d._id !== id));
+            alert("🗑 Devis supprimé !");
+        } catch (err) {
+            console.error(err);
+            alert("❌ Erreur lors de la suppression");
+        }
+    };
+
     return (
         <div style={{ padding: "20px" }}>
             <h1>📋 Tableau des devis</h1>
@@ -122,6 +144,7 @@ function AdminDashboard({ onLogout }) {
                             <th>Nom</th>
                             <th>Email</th>
                             <th>Téléphone</th>
+                            <th>Message</th>
                             <th>Prestations</th>
                             <th>Total HT</th>
                             <th>TVA</th>
@@ -136,6 +159,7 @@ function AdminDashboard({ onLogout }) {
                                 <td>{devis.nom}</td>
                                 <td>{devis.email}</td>
                                 <td>{devis.telephone}</td>
+                                <td>{devis.details || "—"}</td>
                                 <td>
                                     {devis.prestations?.map((p, i) => (
                                         <div key={i}>
@@ -194,9 +218,23 @@ function AdminDashboard({ onLogout }) {
                                             borderRadius: "4px",
                                             border: "none",
                                             cursor: "pointer",
+                                            marginRight: "5px",
                                         }}
                                     >
                                         Télécharger PDF
+                                    </button>
+                                    <button
+                                        onClick={() => deleteDevis(devis._id)}
+                                        style={{
+                                            backgroundColor: "#f44336",
+                                            color: "white",
+                                            padding: "6px 12px",
+                                            borderRadius: "4px",
+                                            border: "none",
+                                            cursor: "pointer",
+                                        }}
+                                    >
+                                        Supprimer
                                     </button>
                                 </td>
                             </tr>
@@ -205,6 +243,7 @@ function AdminDashboard({ onLogout }) {
                 </table>
             )}
 
+            {/* Formulaire édition devis (inchangé) */}
             {editingDevis && (
                 <div
                     style={{

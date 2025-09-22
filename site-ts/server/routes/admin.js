@@ -60,6 +60,19 @@ router.get("/devis", verifyToken, async (req, res) => {
     }
 });
 
+// 📌 Supprimer un devis
+router.delete("/devis/:id", verifyToken, async (req, res) => {
+    try {
+        const devis = await Devis.findByIdAndDelete(req.params.id);
+        if (!devis) {
+            return res.status(404).json({ message: "Devis introuvable" });
+        }
+        res.json({ message: "✅ Devis supprimé avec succès" });
+    } catch (err) {
+        console.error("❌ Erreur suppression devis :", err);
+        res.status(500).json({ error: "Erreur serveur lors de la suppression" });
+    }
+});
 // 📌 Mise à jour d’un devis par l’artisan
 router.put("/devis/:id", verifyToken, async (req, res) => {
     try {
@@ -184,11 +197,13 @@ router.get("/devis/:id/pdf", verifyToken, async (req, res) => {
         doc.moveDown(4);
 
         // === TOTAL GÉNÉRAL ===
-        doc.rect(300, doc.y, 200, 60).fill("#e63946").stroke();
-        doc.fillColor("white").font("Helvetica-Bold").fontSize(14)
-            .text(`HT : ${totalHT.toFixed(2)} €`, 310, doc.y + 10)
-            .text(`TVA (20%) : ${tva.toFixed(2)} €`, 310, doc.y + 30)
-            .text(`TTC : ${totalTTC.toFixed(2)} €`, 310, doc.y + 50);
+        const boxHeight = 90; // assez pour 3 lignes
+        doc.rect(300, doc.y, 200, boxHeight).fill("#e63946").stroke();
+
+        doc.fillColor("white").font("Helvetica-Bold").fontSize(14);
+        doc.text(`HT : ${totalHT.toFixed(2)} €`, 310, doc.y + 10);
+        doc.text(`TVA (20%) : ${tva.toFixed(2)} €`, 310, doc.y + 35);
+        doc.text(`TTC : ${totalTTC.toFixed(2)} €`, 310, doc.y + 60);
 
         // === FOOTER ===
         doc.fillColor("#555").font("Helvetica-Oblique").fontSize(10)

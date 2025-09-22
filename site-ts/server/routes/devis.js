@@ -23,14 +23,26 @@ const upload = multer({ storage });
 // ✅ Route pour créer un devis
 router.post("/", upload.array("photos"), async (req, res) => {
     try {
-        const { nom, email, telephone, details, prestations } = req.body;
+        const { nom, email, telephone, details, prestations, service, quantite, prixEstime } = req.body;
         const photos = req.files.map(file => `/uploads/${file.filename}`);
 
         let parsedPrestations = [];
+
+        // 🟢 Cas 1 : le front envoie un tableau de prestations (JSON)
         if (prestations) {
             parsedPrestations = JSON.parse(prestations);
         }
 
+        // 🟢 Cas 2 : le front envoie juste service/quantite/prixEstime
+        if (service && quantite && prixEstime) {
+            parsedPrestations.push({
+                designation: service,
+                quantite: Number(quantite),
+                prixUnitaire: Number(prixEstime),
+            });
+        }
+
+        // 🔹 Calcul totaux
         const totalHT = parsedPrestations.reduce(
             (sum, p) => sum + (p.quantite || 0) * (p.prixUnitaire || 0),
             0
