@@ -153,22 +153,22 @@ function AdminDashboard({ onLogout }) {
                         <tbody>
                             {devisList.map((devis) => (
                                 <tr key={devis._id}>
-                                    <td>{devis.nom}</td>
-                                    <td>{devis.email}</td>
-                                    <td>{devis.telephone}</td>
-                                    <td>{devis.details || "—"}</td>
-                                    <td>
+                                    <td data-label="Nom">{devis.nom}</td>
+                                    <td data-label="Email">{devis.email}</td>
+                                    <td data-label="Téléphone">{devis.telephone}</td>
+                                    <td data-label="Message">{devis.details || "—"}</td>
+                                    <td data-label="Prestations">
                                         {devis.prestations?.map((p, i) => (
                                             <div key={i}>
                                                 {p.designation} ({p.quantite} × {p.prixUnitaire}€)
                                             </div>
                                         ))}
                                     </td>
-                                    <td>{(devis.totalHT || 0).toFixed(2)} €</td>
-                                    <td>{(devis.tva || 0).toFixed(2)} €</td>
-                                    <td>{(devis.totalTTC || 0).toFixed(2)} €</td>
-                                    <td>{new Date(devis.createdAt).toLocaleDateString()}</td>
-                                    <td className="actions-cell">
+                                    <td data-label="Total HT">{(devis.totalHT || 0).toFixed(2)} €</td>
+                                    <td data-label="TVA">{(devis.tva || 0).toFixed(2)} €</td>
+                                    <td data-label="Total TTC">{(devis.totalTTC || 0).toFixed(2)} €</td>
+                                    <td data-label="Date">{new Date(devis.createdAt).toLocaleDateString()}</td>
+                                    <td data-label="Actions" className="actions-cell">
                                         <button className="edit" onClick={() => setEditingDevis(devis)}>
                                             ✏ Modifier
                                         </button>
