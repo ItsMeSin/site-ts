@@ -1,88 +1,195 @@
-.admin-dashboard {
-    padding: 30px;
-    background: #f4f6f9;
-    min-height: 100vh;
+/* ----- Layout général ----- */
+body {
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background: #f5f7fb;
+    margin: 0;
+    padding: 0;
 }
 
-.admin-dashboard h2 {
-    font-size: 24px;
-    font-weight: bold;
+h1 {
+    text-align: center;
+    color: #333;
     margin-bottom: 20px;
+}
+
+/* ----- Boutons généraux ----- */
+button {
+    font-size: 14px;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+button:hover {
+    opacity: 0.85;
+    transform: scale(1.02);
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+/* Déconnexion */
+button.logout {
+    background: #6c757d;
+    color: white;
+    margin-bottom: 20px;
+}
+
+/* Actions tableau */
+button.edit {
+    background: #2196f3;
+    color: white;
+}
+
+button.pdf {
+    background: #4caf50;
+    color: white;
+}
+
+button.delete {
+    background: #f44336;
+    color: white;
+}
+
+/* ----- Tableau ----- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px auto;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+thead {
+    background: #1976d2;
+    color: white;
+}
+
+thead th {
+    padding: 12px;
+    text-align: left;
+    font-size: 14px;
+}
+
+tbody td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+    color: #333;
+}
+
+tbody tr:hover {
+    background: #f9f9f9;
+}
+
+/* ----- Formulaire édition ----- */
+.edit-form {
+    margin-top: 20px;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.edit-form h2 {
+    margin-top: 0;
+    color: #1976d2;
+}
+
+.edit-form input {
+    margin-right: 10px;
+    padding: 6px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+.edit-form button {
+    margin-top: 10px;
+}
+
+/* 🔹 HEADER FIXE */
+.dashboard-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    background: #2c3e50;
+    color: white;
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: space-between;
+    padding: 0 30px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
 }
 
-.devis-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    background: white;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.devis-table thead {
-    background: #1a73e8;
-    color: white;
-    font-size: 14px;
-}
-
-.devis-table th,
-.devis-table td {
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 1px solid #eee;
-}
-
-.devis-table tbody tr:nth-child(even) {
-    background: #f9fbfd;
-}
-
-.devis-table tbody tr:hover {
-    background: #eef3fb;
-    transition: 0.2s ease-in-out;
-}
-
-.devis-table td {
-    font-size: 14px;
-}
-
-.actions button {
-    border: none;
-    padding: 8px 14px;
-    border-radius: 8px;
+.dashboard-header h1 {
+    font-size: 20px;
     font-weight: 600;
+    margin: 0;
+}
+
+.dashboard-content {
+    margin-top: 80px;
+    /* pour éviter que le tableau passe sous le header */
+    padding: 20px;
+}
+
+
+/* 🔹 CONTAINER GLOBAL */
+.dashboard-container {
+    font-family: Arial, sans-serif;
+    background: #f5f6fa;
+    min-height: 100vh;
+}
+
+/* 🔹 HEADER FIXE */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1e293b;
+    /* bleu foncé/gris */
+    color: white;
+    padding: 15px 25px;
+    border-radius: 8px 8px 0 0;
+    margin-bottom: 20px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+
+.dashboard-header h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+}
+
+/* 🔹 BOUTON DECONNEXION */
+.dashboard-header .logout {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
     cursor: pointer;
-    margin-right: 8px;
-    transition: background 0.2s ease;
+    transition: background 0.2s ease-in-out;
+    font-size: 14px;
 }
 
-.actions .btn-edit {
-    background: #1a73e8;
-    color: white;
+.dashboard-header .logout:hover {
+    background: #dc2626;
 }
 
-.actions .btn-edit:hover {
-    background: #1558b0;
-}
-
-.actions .btn-delete {
-    background: #e63946;
-    color: white;
-}
-
-.actions .btn-delete:hover {
-    background: #c53030;
-}
-
-.actions .btn-download {
-    background: #2ecc71;
-    color: white;
-}
-
-.actions .btn-download:hover {
-    background: #27ae60;
+/* 🔹 CONTENU DECALE SOUS LE HEADER */
+.dashboard-content {
+    margin-top: 80px;
+    /* évite que le tableau passe sous le header */
+    padding: 20px;
 }

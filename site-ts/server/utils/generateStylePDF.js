@@ -17,7 +17,7 @@ function generateStyledPDF(devis, filePath) {
         doc
             .fontSize(20)
             .fillColor("#2C3E50")
-            .text("TS Couverture", 150, 50)
+            .text("TS Couverture Peinture", 150, 50)
             .fontSize(10)
             .fillColor("#7F8C8D")
             .text("123 Rue des Artisans", 150, 75)

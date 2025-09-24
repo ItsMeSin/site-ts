@@ -76,7 +76,6 @@ function AdminDashboard({ onLogout }) {
         }
     };
 
-    // 🔹 Ajouter une prestation
     const addPrestation = () => {
         setEditingDevis({
             ...editingDevis,
@@ -87,14 +86,12 @@ function AdminDashboard({ onLogout }) {
         });
     };
 
-    // 🔹 Supprimer une prestation
     const removePrestation = (index) => {
         const newPrestations = [...editingDevis.prestations];
         newPrestations.splice(index, 1);
         setEditingDevis({ ...editingDevis, prestations: newPrestations });
     };
 
-    // 🔹 Supprimer un devis
     const deleteDevis = async (id) => {
         if (!window.confirm("Voulez-vous vraiment supprimer ce devis ?")) return;
 
@@ -116,149 +113,113 @@ function AdminDashboard({ onLogout }) {
     };
 
     return (
-        <div style={{ padding: "20px" }}>
-            <h1>📋 Tableau des devis</h1>
+        <div className="dashboard-container">
 
-            <button
-                onClick={() => {
-                    localStorage.removeItem("token");
-                    onLogout();
-                }}
-                style={{ marginBottom: "20px" }}
-            >
-                Déconnexion
-            </button>
-
-            {loading && <p>Chargement...</p>}
-            {error && <p style={{ color: "red" }}>{error}</p>}
-            {!loading && devisList.length === 0 && <p>Aucun devis pour le moment.</p>}
-
-            {!loading && devisList.length > 0 && (
-                <table
-                    border="1"
-                    cellPadding="10"
-                    style={{ borderCollapse: "collapse", width: "100%" }}
-                >
-                    <thead>
-                        <tr>
-                            <th>Nom</th>
-                            <th>Email</th>
-                            <th>Téléphone</th>
-                            <th>Message</th>
-                            <th>Prestations</th>
-                            <th>Total HT</th>
-                            <th>TVA</th>
-                            <th>Total TTC</th>
-                            <th>Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {devisList.map((devis) => (
-                            <tr key={devis._id}>
-                                <td>{devis.nom}</td>
-                                <td>{devis.email}</td>
-                                <td>{devis.telephone}</td>
-                                <td>{devis.details || "—"}</td>
-                                <td>
-                                    {devis.prestations?.map((p, i) => (
-                                        <div key={i}>
-                                            {p.designation} ({p.quantite} × {p.prixUnitaire}€)
-                                        </div>
-                                    ))}
-                                </td>
-                                <td>{(devis.totalHT || 0).toFixed(2)} €</td>
-                                <td>{(devis.tva || 0).toFixed(2)} €</td>
-                                <td>{(devis.totalTTC || 0).toFixed(2)} €</td>
-                                <td>{new Date(devis.createdAt).toLocaleDateString()}</td>
-                                <td>
-                                    <button
-                                        onClick={() => setEditingDevis(devis)}
-                                        style={{
-                                            backgroundColor: "#2196F3",
-                                            color: "white",
-                                            padding: "6px 12px",
-                                            borderRadius: "4px",
-                                            border: "none",
-                                            cursor: "pointer",
-                                            marginRight: "5px",
-                                        }}
-                                    >
-                                        Modifier
-                                    </button>
-                                    <button
-                                        onClick={async () => {
-                                            const token = localStorage.getItem("token");
-                                            try {
-                                                const res = await fetch(
-                                                    `http://localhost:4000/api/admin/devis/${devis._id}/pdf`,
-                                                    {
-                                                        headers: { Authorization: `Bearer ${token}` },
-                                                    }
-                                                );
-                                                if (!res.ok) throw new Error("Erreur PDF");
-
-                                                const blob = await res.blob();
-                                                const url = window.URL.createObjectURL(blob);
-                                                const a = document.createElement("a");
-                                                a.href = url;
-                                                a.download = `devis-${devis._id}.pdf`;
-                                                document.body.appendChild(a);
-                                                a.click();
-                                                a.remove();
-                                                window.URL.revokeObjectURL(url);
-                                            } catch (err) {
-                                                alert("Impossible de télécharger le PDF");
-                                            }
-                                        }}
-                                        style={{
-                                            backgroundColor: "#4CAF50",
-                                            color: "white",
-                                            padding: "6px 12px",
-                                            borderRadius: "4px",
-                                            border: "none",
-                                            cursor: "pointer",
-                                            marginRight: "5px",
-                                        }}
-                                    >
-                                        Télécharger PDF
-                                    </button>
-                                    <button
-                                        onClick={() => deleteDevis(devis._id)}
-                                        style={{
-                                            backgroundColor: "#f44336",
-                                            color: "white",
-                                            padding: "6px 12px",
-                                            borderRadius: "4px",
-                                            border: "none",
-                                            cursor: "pointer",
-                                        }}
-                                    >
-                                        Supprimer
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
-
-            {/* Formulaire édition devis (inchangé) */}
-            {editingDevis && (
-                <div
-                    style={{
-                        marginTop: "20px",
-                        padding: "20px",
-                        border: "1px solid #ccc",
-                        borderRadius: "6px",
-                        background: "#f9f9f9",
+            {/* 🔹 HEADER FIXE */}
+            <header className="dashboard-header">
+                <h1>📋 Tableau des devis</h1>
+                <button
+                    className="logout"
+                    onClick={() => {
+                        localStorage.removeItem("token");
+                        onLogout();
                     }}
                 >
+                    Déconnexion
+                </button>
+            </header>
+
+            <main className="dashboard-content">
+                {loading && <p>Chargement...</p>}
+                {error && <p className="error">{error}</p>}
+                {!loading && devisList.length === 0 && <p>Aucun devis pour le moment.</p>}
+
+                {!loading && devisList.length > 0 && (
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Email</th>
+                                <th>Téléphone</th>
+                                <th>Message</th>
+                                <th>Prestations</th>
+                                <th>Total HT</th>
+                                <th>TVA</th>
+                                <th>Total TTC</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {devisList.map((devis) => (
+                                <tr key={devis._id}>
+                                    <td>{devis.nom}</td>
+                                    <td>{devis.email}</td>
+                                    <td>{devis.telephone}</td>
+                                    <td>{devis.details || "—"}</td>
+                                    <td>
+                                        {devis.prestations?.map((p, i) => (
+                                            <div key={i}>
+                                                {p.designation} ({p.quantite} × {p.prixUnitaire}€)
+                                            </div>
+                                        ))}
+                                    </td>
+                                    <td>{(devis.totalHT || 0).toFixed(2)} €</td>
+                                    <td>{(devis.tva || 0).toFixed(2)} €</td>
+                                    <td>{(devis.totalTTC || 0).toFixed(2)} €</td>
+                                    <td>{new Date(devis.createdAt).toLocaleDateString()}</td>
+                                    <td className="actions-cell">
+                                        <button className="edit" onClick={() => setEditingDevis(devis)}>
+                                            ✏ Modifier
+                                        </button>
+                                        <button
+                                            className="pdf"
+                                            onClick={async () => {
+                                                const token = localStorage.getItem("token");
+                                                try {
+                                                    const res = await fetch(
+                                                        `http://localhost:4000/api/admin/devis/${devis._id}/pdf`,
+                                                        {
+                                                            headers: { Authorization: `Bearer ${token}` },
+                                                        }
+                                                    );
+                                                    if (!res.ok) throw new Error("Erreur PDF");
+
+                                                    const blob = await res.blob();
+                                                    const url = window.URL.createObjectURL(blob);
+                                                    const a = document.createElement("a");
+                                                    a.href = url;
+                                                    a.download = `devis-${devis._id}.pdf`;
+                                                    document.body.appendChild(a);
+                                                    a.click();
+                                                    a.remove();
+                                                    window.URL.revokeObjectURL(url);
+                                                } catch (err) {
+                                                    alert("Impossible de télécharger le PDF");
+                                                }
+                                            }}
+                                        >
+                                            📄 PDF
+                                        </button>
+                                        <button className="delete" onClick={() => deleteDevis(devis._id)}>
+                                            🗑 Supprimer
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </main>
+
+            {/* Formulaire édition devis */}
+            {editingDevis && (
+                <div className="edit-form">
                     <h2>Modifier le devis</h2>
                     <form onSubmit={handleUpdateDevis}>
                         <h3>Prestations</h3>
                         {editingDevis.prestations?.map((p, index) => (
-                            <div key={index} style={{ marginBottom: "10px" }}>
+                            <div key={index} className="prestation-line">
                                 <input
                                     type="text"
                                     placeholder="Désignation"
@@ -301,43 +262,25 @@ function AdminDashboard({ onLogout }) {
                                 <button
                                     type="button"
                                     onClick={() => removePrestation(index)}
-                                    style={{ marginLeft: "10px", color: "red" }}
+                                    className="delete"
                                 >
                                     Supprimer
                                 </button>
                             </div>
                         ))}
 
-                        <button type="button" onClick={addPrestation}>
+                        <button type="button" onClick={addPrestation} className="edit">
                             ➕ Ajouter prestation
                         </button>
 
                         <div style={{ marginTop: "20px" }}>
-                            <button
-                                type="submit"
-                                style={{
-                                    marginRight: "10px",
-                                    backgroundColor: "#4CAF50",
-                                    color: "white",
-                                    padding: "6px 12px",
-                                    borderRadius: "4px",
-                                    border: "none",
-                                    cursor: "pointer",
-                                }}
-                            >
+                            <button type="submit" className="pdf">
                                 Sauvegarder
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setEditingDevis(null)}
-                                style={{
-                                    backgroundColor: "#f44336",
-                                    color: "white",
-                                    padding: "6px 12px",
-                                    borderRadius: "4px",
-                                    border: "none",
-                                    cursor: "pointer",
-                                }}
+                                className="delete"
                             >
                                 Annuler
                             </button>
