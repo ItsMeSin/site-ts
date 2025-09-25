@@ -135,7 +135,7 @@ function AdminDashboard({ onLogout }) {
                 {!loading && devisList.length === 0 && <p>Aucun devis pour le moment.</p>}
 
                 {!loading && devisList.length > 0 && (
-                    <table>
+                    <table className="devis-table">
                         <thead>
                             <tr>
                                 <th>Nom</th>
@@ -143,6 +143,7 @@ function AdminDashboard({ onLogout }) {
                                 <th>Téléphone</th>
                                 <th>Message</th>
                                 <th>Prestations</th>
+                                <th>Photos</th>
                                 <th>Total HT</th>
                                 <th>TVA</th>
                                 <th>Total TTC</th>
@@ -163,6 +164,33 @@ function AdminDashboard({ onLogout }) {
                                                 {p.designation} ({p.quantite} × {p.prixUnitaire}€)
                                             </div>
                                         ))}
+                                    </td>
+                                    <td data-label="Photos">
+                                        {devis.photos && devis.photos.length > 0 ? (
+                                            devis.photos.map((url, i) => (
+                                                <a
+                                                    key={i}
+                                                    href={url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    <img
+                                                        src={url}
+                                                        alt={`photo-${i}`}
+                                                        style={{
+                                                            width: "60px",
+                                                            height: "60px",
+                                                            objectFit: "cover",
+                                                            borderRadius: "6px",
+                                                            margin: "4px",
+                                                            border: "1px solid #ccc",
+                                                        }}
+                                                    />
+                                                </a>
+                                            ))
+                                        ) : (
+                                            <span>—</span>
+                                        )}
                                     </td>
                                     <td data-label="Total HT">{(devis.totalHT || 0).toFixed(2)} €</td>
                                     <td data-label="TVA">{(devis.tva || 0).toFixed(2)} €</td>

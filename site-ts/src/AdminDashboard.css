@@ -228,66 +228,69 @@ tbody tr:hover {
     }
 }
 
-/* Mobiles (max 768px) */
+/* Responsive tableau en mode cartes pour mobile */
 @media (max-width: 768px) {
 
-    table,
-    thead,
-    tbody,
-    th,
-    td,
-    tr {
+    table.devis-table,
+    table.devis-table thead,
+    table.devis-table tbody,
+    table.devis-table th,
+    table.devis-table td,
+    table.devis-table tr {
         display: block;
         width: 100%;
     }
 
-    thead {
+    table.devis-table thead {
         display: none;
-        /* cache les en-têtes */
     }
 
-    tbody tr {
+    table.devis-table tr {
         margin-bottom: 15px;
-        background: white;
+        border: 1px solid #ddd;
         border-radius: 8px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
         padding: 10px;
+        background: white;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     }
 
-    tbody td {
+    table.devis-table td {
         display: flex;
-        justify-content: space-between;
-        padding: 6px 10px;
+        justify-content: flex-start;
+        align-items: flex-start;
+        padding: 8px;
         border: none;
+        border-bottom: 1px solid #eee;
         font-size: 14px;
+        word-break: break-word;
+        /* force le retour à la ligne */
+        white-space: normal;
     }
 
-    tbody td::before {
+    table.devis-table td:last-child {
+        border-bottom: none;
+    }
+
+    table.devis-table td::before {
         content: attr(data-label);
         font-weight: bold;
-        color: #555;
+        color: #333;
+        margin-right: 10px;
+        flex: 0 0 40%;
+        text-align: left;
     }
 
-    /* Boutons en colonne */
-    .actions-cell {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
+    table.devis-table td>div {
+        flex: 1;
+        text-align: left;
     }
+}
 
-    button {
-        width: 100%;
-        padding: 10px;
-        font-size: 14px;
-    }
+.devis-table td img {
+    transition: transform 0.2s;
+}
 
-    .edit-form input {
-        display: block;
-        width: 100%;
-        margin-bottom: 10px;
-    }
-
-    .edit-form button {
-        width: 100%;
-    }
+.devis-table td img:hover {
+    transform: scale(1.2);
+    cursor: pointer;
 }
