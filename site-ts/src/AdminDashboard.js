@@ -1,3 +1,4 @@
+// AdminDashboard.jsx
 import React, { useEffect, useState } from "react";
 import "./AdminDashboard.css";
 
@@ -31,7 +32,7 @@ function AdminDashboard({ onLogout }) {
             .finally(() => setLoading(false));
     }, [onLogout]);
 
-    // 🔹 Calcul total HT/TVA/TTC
+    // 🔹 Calcul total HT/TVA/TTC (utile pour l'édition)
     const calculerTotaux = (prestations) => {
         const totalHT = prestations.reduce(
             (acc, p) => acc + (p.quantite || 0) * (p.prixUnitaire || 0),
@@ -42,11 +43,59 @@ function AdminDashboard({ onLogout }) {
         return { totalHT, tva, totalTTC };
     };
 
+    // 🔹 Télécharger / générer le PDF (protégé)
+    const handleDownloadPDF = async (devis) => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            onLogout();
+            return;
+        }
+
+        try {
+            const res = await fetch(
+                `http://localhost:4000/api/admin/devis/${devis._id}/pdf`,
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+
+            if (res.status === 401 || res.status === 403) {
+                onLogout();
+                return;
+            }
+
+            if (!res.ok) throw new Error("Erreur lors de la génération/téléchargement du PDF");
+
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+
+            // essayer de récupérer un nom de fichier depuis les headers si présent
+            const cd = res.headers.get("content-disposition");
+            let filename = `devis-${devis._id}.pdf`;
+            if (cd) {
+                const m = cd.match(/filename="?(.+?)"?($|;)/);
+                if (m && m[1]) filename = m[1];
+            }
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error("PDF download error:", err);
+            alert("Impossible de télécharger le PDF. Regarde la console / network pour plus d'infos.");
+        }
+    };
+
     const handleUpdateDevis = async (e) => {
         e.preventDefault();
         const token = localStorage.getItem("token");
+        if (!editingDevis) return;
 
-        const { totalHT, tva, totalTTC } = calculerTotaux(editingDevis.prestations);
+        const { totalHT, tva, totalTTC } = calculerTotaux(editingDevis.prestations || []);
 
         try {
             const res = await fetch(
@@ -64,10 +113,7 @@ function AdminDashboard({ onLogout }) {
             if (!res.ok) throw new Error("Erreur mise à jour");
             const updated = await res.json();
 
-            setDevisList((prev) =>
-                prev.map((d) => (d._id === updated._id ? updated : d))
-            );
-
+            setDevisList((prev) => prev.map((d) => (d._id === updated._id ? updated : d)));
             setEditingDevis(null);
             alert("✅ Devis mis à jour !");
         } catch (err) {
@@ -79,10 +125,7 @@ function AdminDashboard({ onLogout }) {
     const addPrestation = () => {
         setEditingDevis({
             ...editingDevis,
-            prestations: [
-                ...(editingDevis.prestations || []),
-                { designation: "", quantite: 1, prixUnitaire: 0 },
-            ],
+            prestations: [...(editingDevis.prestations || []), { designation: "", quantite: 1, prixUnitaire: 0 }],
         });
     };
 
@@ -114,7 +157,6 @@ function AdminDashboard({ onLogout }) {
 
     return (
         <div className="dashboard-container">
-
             {/* 🔹 HEADER FIXE */}
             <header className="dashboard-header">
                 <h1>📋 Tableau des devis</h1>
@@ -143,7 +185,7 @@ function AdminDashboard({ onLogout }) {
                                 <th>Téléphone</th>
                                 <th>Message</th>
                                 <th>Prestations</th>
-                                <th>Photos</th>
+                                <th>📷 Photos</th>
                                 <th>Total HT</th>
                                 <th>TVA</th>
                                 <th>Total TTC</th>
@@ -165,157 +207,115 @@ function AdminDashboard({ onLogout }) {
                                             </div>
                                         ))}
                                     </td>
+
                                     <td data-label="Photos">
                                         {devis.photos && devis.photos.length > 0 ? (
-                                            devis.photos.map((url, i) => (
-                                                <a
-                                                    key={i}
-                                                    href={url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                >
-                                                    <img
-                                                        src={url}
-                                                        alt={`photo-${i}`}
-                                                        style={{
-                                                            width: "60px",
-                                                            height: "60px",
-                                                            objectFit: "cover",
-                                                            borderRadius: "6px",
-                                                            margin: "4px",
-                                                            border: "1px solid #ccc",
-                                                        }}
-                                                    />
-                                                </a>
-                                            ))
+                                            <div className="photos-grid">
+                                                {devis.photos.map((url, i) => (
+                                                    <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                                                        <img src={url} alt={`photo-${i}`} className="photo-thumbnail" />
+                                                    </a>
+                                                ))}
+                                            </div>
                                         ) : (
                                             <span>—</span>
                                         )}
                                     </td>
+
                                     <td data-label="Total HT">{(devis.totalHT || 0).toFixed(2)} €</td>
                                     <td data-label="TVA">{(devis.tva || 0).toFixed(2)} €</td>
                                     <td data-label="Total TTC">{(devis.totalTTC || 0).toFixed(2)} €</td>
                                     <td data-label="Date">{new Date(devis.createdAt).toLocaleDateString()}</td>
                                     <td data-label="Actions" className="actions-cell">
-                                        <button className="edit" onClick={() => setEditingDevis(devis)}>
-                                            ✏ Modifier
-                                        </button>
-                                        <button
-                                            className="pdf"
-                                            onClick={async () => {
-                                                const token = localStorage.getItem("token");
-                                                try {
-                                                    const res = await fetch(
-                                                        `http://localhost:4000/api/admin/devis/${devis._id}/pdf`,
-                                                        {
-                                                            headers: { Authorization: `Bearer ${token}` },
-                                                        }
-                                                    );
-                                                    if (!res.ok) throw new Error("Erreur PDF");
+                                        <button className="edit" onClick={() => setEditingDevis(devis)}>✏ Modifier</button>
 
-                                                    const blob = await res.blob();
-                                                    const url = window.URL.createObjectURL(blob);
-                                                    const a = document.createElement("a");
-                                                    a.href = url;
-                                                    a.download = `devis-${devis._id}.pdf`;
-                                                    document.body.appendChild(a);
-                                                    a.click();
-                                                    a.remove();
-                                                    window.URL.revokeObjectURL(url);
-                                                } catch (err) {
-                                                    alert("Impossible de télécharger le PDF");
-                                                }
-                                            }}
-                                        >
-                                            📄 PDF
-                                        </button>
-                                        <button className="delete" onClick={() => deleteDevis(devis._id)}>
-                                            🗑 Supprimer
-                                        </button>
+                                        {/* On utilise la fonction protégée pour générer/télécharger le PDF */}
+                                        <button className="pdf" onClick={() => handleDownloadPDF(devis)}>📄 PDF</button>
+
+                                        <button className="delete" onClick={() => deleteDevis(devis._id)}>🗑 Supprimer</button>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 )}
+
+                {/* 🔹 Formulaire d’édition */}
+                {editingDevis && (
+                    <div className="edit-form">
+                        <h2>✏ Modifier le devis</h2>
+                        <form onSubmit={handleUpdateDevis}>
+                            <input
+                                type="text"
+                                value={editingDevis.nom || ""}
+                                onChange={(e) => setEditingDevis({ ...editingDevis, nom: e.target.value })}
+                                placeholder="Nom"
+                                required
+                            />
+                            <input
+                                type="email"
+                                value={editingDevis.email || ""}
+                                onChange={(e) => setEditingDevis({ ...editingDevis, email: e.target.value })}
+                                placeholder="Email"
+                                required
+                            />
+                            <input
+                                type="text"
+                                value={editingDevis.telephone || ""}
+                                onChange={(e) => setEditingDevis({ ...editingDevis, telephone: e.target.value })}
+                                placeholder="Téléphone"
+                                required
+                            />
+                            <textarea
+                                value={editingDevis.details || ""}
+                                onChange={(e) => setEditingDevis({ ...editingDevis, details: e.target.value })}
+                                placeholder="Message"
+                            />
+
+                            <h3>Prestations</h3>
+                            {editingDevis.prestations?.map((p, i) => (
+                                <div key={i} className="prestation-edit">
+                                    <input
+                                        type="text"
+                                        value={p.designation}
+                                        onChange={(e) => {
+                                            const newPrestations = [...editingDevis.prestations];
+                                            newPrestations[i].designation = e.target.value;
+                                            setEditingDevis({ ...editingDevis, prestations: newPrestations });
+                                        }}
+                                        placeholder="Désignation"
+                                    />
+                                    <input
+                                        type="number"
+                                        value={p.quantite}
+                                        onChange={(e) => {
+                                            const newPrestations = [...editingDevis.prestations];
+                                            newPrestations[i].quantite = Number(e.target.value);
+                                            setEditingDevis({ ...editingDevis, prestations: newPrestations });
+                                        }}
+                                        placeholder="Quantité"
+                                    />
+                                    <input
+                                        type="number"
+                                        value={p.prixUnitaire}
+                                        onChange={(e) => {
+                                            const newPrestations = [...editingDevis.prestations];
+                                            newPrestations[i].prixUnitaire = Number(e.target.value);
+                                            setEditingDevis({ ...editingDevis, prestations: newPrestations });
+                                        }}
+                                        placeholder="Prix unitaire"
+                                    />
+                                    <button type="button" onClick={() => removePrestation(i)}>❌</button>
+                                </div>
+                            ))}
+
+                            <button type="button" onClick={addPrestation}>➕ Ajouter prestation</button>
+                            <button type="submit">💾 Enregistrer</button>
+                            <button type="button" onClick={() => setEditingDevis(null)}>❌ Annuler</button>
+                        </form>
+                    </div>
+                )}
             </main>
-
-            {/* Formulaire édition devis */}
-            {editingDevis && (
-                <div className="edit-form">
-                    <h2>Modifier le devis</h2>
-                    <form onSubmit={handleUpdateDevis}>
-                        <h3>Prestations</h3>
-                        {editingDevis.prestations?.map((p, index) => (
-                            <div key={index} className="prestation-line">
-                                <input
-                                    type="text"
-                                    placeholder="Désignation"
-                                    value={p.designation}
-                                    onChange={(e) => {
-                                        const newPrestations = [...editingDevis.prestations];
-                                        newPrestations[index].designation = e.target.value;
-                                        setEditingDevis({
-                                            ...editingDevis,
-                                            prestations: newPrestations,
-                                        });
-                                    }}
-                                />
-                                <input
-                                    type="number"
-                                    placeholder="Quantité"
-                                    value={p.quantite}
-                                    onChange={(e) => {
-                                        const newPrestations = [...editingDevis.prestations];
-                                        newPrestations[index].quantite = Number(e.target.value);
-                                        setEditingDevis({
-                                            ...editingDevis,
-                                            prestations: newPrestations,
-                                        });
-                                    }}
-                                />
-                                <input
-                                    type="number"
-                                    placeholder="Prix unitaire"
-                                    value={p.prixUnitaire}
-                                    onChange={(e) => {
-                                        const newPrestations = [...editingDevis.prestations];
-                                        newPrestations[index].prixUnitaire = Number(e.target.value);
-                                        setEditingDevis({
-                                            ...editingDevis,
-                                            prestations: newPrestations,
-                                        });
-                                    }}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => removePrestation(index)}
-                                    className="delete"
-                                >
-                                    Supprimer
-                                </button>
-                            </div>
-                        ))}
-
-                        <button type="button" onClick={addPrestation} className="edit">
-                            ➕ Ajouter prestation
-                        </button>
-
-                        <div style={{ marginTop: "20px" }}>
-                            <button type="submit" className="pdf">
-                                Sauvegarder
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setEditingDevis(null)}
-                                className="delete"
-                            >
-                                Annuler
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
         </div>
     );
 }

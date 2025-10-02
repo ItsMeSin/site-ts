@@ -20,11 +20,15 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ✅ Route pour créer un devis
+/* ------------------------- 📌 CRÉER UN DEVIS ------------------------- */
 router.post("/", upload.array("photos"), async (req, res) => {
     try {
         const { nom, email, telephone, details, prestations, service, quantite, prixEstime } = req.body;
-        const photos = req.files.map(file => `/uploads/${file.filename}`);
+
+        // 🔗 URL complète pour chaque photo
+        const photos = req.files.map(
+            file => `${req.protocol}://${req.get("host")}/uploads/${file.filename}`
+        );
 
         let parsedPrestations = [];
 
@@ -72,19 +76,6 @@ router.post("/", upload.array("photos"), async (req, res) => {
     }
 });
 
-// ✅ Route pour récupérer tous les devis (admin ou test)
-router.get("/", async (req, res) => {
-    try {
-        const devis = await Devis.find().sort({ createdAt: -1 });
-        res.json(devis);
-    } catch (err) {
-        res.status(500).json({ error: "Erreur serveur" });
-    }
-});
-
-module.exports = router;
-
-
 /* ------------------------- 📌 MODIFIER UN DEVIS ------------------------- */
 router.put("/:id", upload.array("photos"), async (req, res) => {
     try {
@@ -105,7 +96,9 @@ router.put("/:id", upload.array("photos"), async (req, res) => {
 
         // Photos si re-upload
         if (req.files && req.files.length > 0) {
-            devis.photos = req.files.map(file => `/uploads/${file.filename}`);
+            devis.photos = req.files.map(
+                file => `${req.protocol}://${req.get("host")}/uploads/${file.filename}`
+            );
         }
 
         // Recalcul des totaux

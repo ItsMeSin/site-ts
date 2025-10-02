@@ -13,7 +13,7 @@ app.use(cors());
 app.use(express.json());
 
 // Dossiers statiques
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/pdfs", express.static("pdfs"));
 
 // Connexion MongoDB
