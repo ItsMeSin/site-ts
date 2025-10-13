@@ -19,7 +19,6 @@ export default function ArtisansCouvreurSite() {
         { nom: "Étanchéité & zinguerie", prix: "sur devis", description: "Pose et entretien de gouttières, chéneaux, bardages." },
     ];
 
-
     const beforeAfterPairs = [
         ["photo1.jpg", "photo2.jpg"],
         ["photo3.jpg", "photo4.jpg"],
@@ -27,12 +26,8 @@ export default function ArtisansCouvreurSite() {
     ];
 
     const [currentSlide, setCurrentSlide] = useState(0);
-    const nextSlide = () => {
-        setCurrentSlide((prev) => (prev + 1) % beforeAfterPairs.length);
-    };
-    const prevSlide = () => {
-        setCurrentSlide((prev) => (prev - 1 + beforeAfterPairs.length) % beforeAfterPairs.length);
-    };
+    const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % beforeAfterPairs.length);
+    const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + beforeAfterPairs.length) % beforeAfterPairs.length);
 
     const [formData, setFormData] = useState({
         nom: "",
@@ -45,11 +40,7 @@ export default function ArtisansCouvreurSite() {
         prixEstime: 0,
     });
 
-    const tarifs = {
-        Rénovation: 1000,
-        Nettoyage: 500,
-        Peinture: 700,
-    };
+    const tarifs = { Rénovation: 1000, Nettoyage: 500, Peinture: 700 };
 
     useEffect(() => {
         const tarif = tarifs[formData.service] || 0;
@@ -96,7 +87,6 @@ export default function ArtisansCouvreurSite() {
                 return;
             }
 
-            // ✅ succès
             alert("Votre demande de devis a été envoyée !");
             if (result.previewUrl) {
                 console.log("📧 Lien Ethereal :", result.previewUrl);
@@ -125,6 +115,7 @@ export default function ArtisansCouvreurSite() {
                 <h1>TS COUVERTURE PEINTURE</h1>
                 <nav>
                     <a href="#prestations" onClick={handleSmoothScroll}>Prestations</a>
+                    <a href="#choisir" onClick={handleSmoothScroll}>Pourquoi me choisir</a>
                     <a href="#realisations" onClick={handleSmoothScroll}>Réalisations</a>
                     <a href="#devis" onClick={handleSmoothScroll}>Contact</a>
                 </nav>
@@ -137,13 +128,41 @@ export default function ArtisansCouvreurSite() {
                     <p>Rénovation - Nettoyage - Peinture de façade</p>
                     <button className="button" onClick={() => {
                         const contactSection = document.getElementById('devis');
-                        if (contactSection) {
-                            contactSection.scrollIntoView({ behavior: 'smooth' });
-                        }
-                    }}>Demander un devis gratuit</button>
+                        if (contactSection) contactSection.scrollIntoView({ behavior: 'smooth' });
+                    }}>
+                        Demander un devis gratuit
+                    </button>
+                </div>
+            </section>
+            {/* 💎 Nouvelle section “Pourquoi me choisir” */}
+            <section id="choisir" className="section grey">
+                <h2>Pourquoi me choisir ?</h2>
+                <p className="intro-text">
+                    Fort de plus de 5 ans d’expérience dans la couverture et la peinture, j’apporte à chaque projet le même soin et la même exigence.
+                    Mon objectif : un travail durable, esthétique et conforme à vos attentes.
+                </p>
+                <div className="qualities">
+                    <div className="quality">
+                        <h3>✅ Expertise et savoir-faire</h3>
+                        <p>Un artisan qualifié, passionné par le travail bien fait et formé aux techniques modernes et traditionnelles.</p>
+                    </div>
+                    <div className="quality">
+                        <h3>🕒 Respect des délais</h3>
+                        <p>Les chantiers sont planifiés avec précision pour garantir une intervention rapide et sans mauvaise surprise.</p>
+                    </div>
+                    <div className="quality">
+                        <h3>💬 Accompagnement personnalisé</h3>
+                        <p>Devis clair, conseils adaptés à votre toiture, suivi rigoureux du chantier jusqu’à la livraison.</p>
+                    </div>
+                    <div className="quality">
+                        <h3>📞 Disponibilité 7j/7</h3>
+                        <p>Besoin d’une intervention urgente ? Je reste disponible 7 jours sur 7 pour répondre rapidement à vos demandes et assurer le suivi de vos chantiers.</p>
+                    </div>
+
                 </div>
             </section>
 
+            {/* 🧱 Section Prestations */}
             <section id="prestations" className="section">
                 <h2>Nos Prestations</h2>
                 <div className="cards">
@@ -163,18 +182,22 @@ export default function ArtisansCouvreurSite() {
                 </div>
             </section>
 
-            <section id="realisations" className="section grey">
+
+
+            {/* 🏗️ Avant / Après */}
+            <section id="realisations" className="section">
                 <h2>Avant / Après</h2>
                 <div className="slider">
                     <button className="slider-button left" onClick={prevSlide}>&lt;</button>
                     <div className="slider-images">
-                        <img key={beforeAfterPairs[currentSlide][0]} className="slider-img" src={`/${beforeAfterPairs[currentSlide][0]}`} alt="Avant" />
-                        <img key={beforeAfterPairs[currentSlide][1]} className="slider-img" src={`/${beforeAfterPairs[currentSlide][1]}`} alt="Après" />
+                        <img className="slider-img" src={`/${beforeAfterPairs[currentSlide][0]}`} alt="Avant" />
+                        <img className="slider-img" src={`/${beforeAfterPairs[currentSlide][1]}`} alt="Après" />
                     </div>
                     <button className="slider-button right" onClick={nextSlide}>&gt;</button>
                 </div>
             </section>
 
+            {/* 📩 Formulaire de contact */}
             <section id="devis" className="section">
                 <h2>Demande de devis</h2>
                 <form className="contact-form" onSubmit={handleSubmit} encType="multipart/form-data">
@@ -191,13 +214,11 @@ export default function ArtisansCouvreurSite() {
 
                     <input type="number" name="quantite" placeholder="Quantité / Heures estimées" min="1" value={formData.quantite} onChange={handleChange} required />
 
-                    <textarea name="details" rows="4" placeholder="Décrivez votre besoin en détail..." value={formData.details} onChange={handleChange} required></textarea>
+                    <textarea name="details" rows="4" placeholder="Décrivez votre besoin..." value={formData.details} onChange={handleChange} required></textarea>
 
                     <input type="file" name="photos" multiple accept="image/*" onChange={handleFileChange} />
 
-                    <p>
-                        <strong>Estimation :</strong> {formData.prixEstime.toFixed(2)} €
-                    </p>
+                    <p><strong>Estimation :</strong> {formData.prixEstime.toFixed(2)} €</p>
 
                     <button type="submit">Demander un devis</button>
                 </form>
