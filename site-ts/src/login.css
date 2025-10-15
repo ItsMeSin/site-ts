@@ -1,0 +1,132 @@
+/* 🧱 Applique le style UNIQUEMENT à la page de connexion */
+.login-page {
+    margin: 0;
+    font-family: "Inter", sans-serif;
+    background: linear-gradient(135deg, #1e3a8a, #2563eb, #60a5fa);
+    background-size: 400% 400%;
+    animation: gradientShift 10s ease infinite;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 🌈 Animation du fond */
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* 🧩 Conteneur du formulaire */
+.login-container {
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    width: 380px;
+    padding: 2.5rem;
+    animation: fadeInUp 0.7s ease-out;
+    text-align: center;
+}
+
+/* ✨ Animation d’apparition */
+@keyframes fadeInUp {
+    from {
+        transform: translateY(40px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* 🏷️ Titre */
+.login-container h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #1e3a8a;
+    margin-bottom: 1.5rem;
+}
+
+/* ⚠️ Message d’erreur */
+.login-container .error-message {
+    background: #fee2e2;
+    color: #b91c1c;
+    padding: 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+/* 🧩 Champs de saisie */
+.login-container .input-group {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.login-container .input-group input {
+    width: 100%;
+    padding: 0.9rem 1rem 0.9rem 2.5rem;
+    border: 1.5px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.login-container .input-group input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+/* Icônes */
+.login-container .input-group svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6b7280;
+}
+
+/* 🔘 Bouton */
+.login-container .login-button {
+    width: 100%;
+    padding: 0.9rem;
+    background: linear-gradient(90deg, #2563eb, #1d4ed8);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.login-container .login-button:hover {
+    background: linear-gradient(90deg, #1e40af, #1d4ed8);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(37, 99, 235, 0.3);
+}
+
+.login-container .login-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.4);
+}
+
+/* 📱 Responsive */
+@media (max-width: 480px) {
+    .login-container {
+        width: 90%;
+        padding: 2rem;
+    }
+}
