@@ -197,6 +197,16 @@ export default function ArtisansCouvreurSite() {
                 </div>
             </section>
 
+
+
+            <section id="intervention" className="section">
+                <h2>Zone d'intervention</h2>
+                <p>Intervention rapide dans toute la Sarthe </p>
+                <div>
+
+                </div>
+            </section>
+
             {/* 📩 Formulaire de contact */}
             <section id="devis" className="section">
                 <h2>Demande de devis</h2>
