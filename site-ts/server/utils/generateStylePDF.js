@@ -14,7 +14,7 @@ function generateStyledPDF(devis, filePath) {
             adresse: "8 cours des figuiers",
             ville: "72100 Le Mans",
             telephone: "07 83 89 76 43",
-            email: "contact@tscouverturepeinture.fr",
+            email: "tscouverturepeinture@gmail.com",
             siret: "99973427000013",
             statut: "Entreprise Individuelle",
             tva: "TVA 20%",
