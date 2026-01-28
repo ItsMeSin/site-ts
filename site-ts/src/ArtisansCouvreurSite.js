@@ -138,7 +138,7 @@ export default function ArtisansCouvreurSite() {
             <section id="choisir" className="section grey">
                 <h2>Pourquoi me choisir ?</h2>
                 <p className="intro-text">
-                    Fort de plus de 5 ans d’expérience dans la couverture et la peinture, j’apporte à chaque projet le même soin et la même exigence.
+                    Fort de plus de 2 ans d’expérience dans la couverture et la peinture, j’apporte à chaque projet le même soin et la même exigence.
                     Mon objectif : un travail durable, esthétique et conforme à vos attentes.
                 </p>
                 <div className="qualities">

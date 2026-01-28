@@ -8,100 +8,151 @@ function generateStyledPDF(devis, filePath) {
         const stream = fs.createWriteStream(filePath);
         doc.pipe(stream);
 
-        // === HEADER AVEC LOGO & ENTREPRISE ===
-        const logoPath = path.join(__dirname, "../logo.jpg");
+        /* ================== DONNÉES FIXES ENTREPRISE ================== */
+        const ENTREPRISE = {
+            nom: "TS Couverture Peinture",
+            adresse: "8 cours des figuiers",
+            ville: "72100 Le Mans",
+            telephone: "07 83 89 76 43",
+            email: "contact@tscouverturepeinture.fr",
+            siret: "99973427000013",
+            statut: "Entreprise Individuelle",
+            tva: "TVA 20%",
+            validite: "30 jours",
+        };
+
+        const dateDevis = new Date().toLocaleDateString("fr-FR");
+        const numeroDevis = devis._id.toString();
+
+        /* ================== HEADER ================== */
+        const logoPath = path.join(__dirname, "../assets/logo.jpg");
         if (fs.existsSync(logoPath)) {
             doc.image(logoPath, 50, 40, { width: 80 });
         }
 
-        doc.fillColor("#2C3E50")
+        doc
+            .fillColor("#2C3E50")
             .fontSize(18)
-            .text("TS Couverture Peinture", 150, 50)
+            .text(ENTREPRISE.nom, 150, 50)
             .fontSize(10)
-            .fillColor("#7F8C8D")
-            .text("123 Rue des Artisans", 150, 70)
-            .text("75000 Paris, France", 150, 85)
-            .text("Téléphone : 06 12 34 56 78", 150, 100);
+            .fillColor("#555")
+            .text(ENTREPRISE.adresse, 150, 70)
+            .text(ENTREPRISE.ville, 150, 85)
+            .text(`Téléphone : ${ENTREPRISE.telephone}`, 150, 100)
+            .text(`Email : ${ENTREPRISE.email}`, 150, 115);
 
-        // Bandeau devis
-        doc.rect(0, 140, doc.page.width, 40).fill("#1abc9c").stroke();
-        doc.fillColor("#fff")
+        /* ================== BANDEAU ================== */
+        doc.rect(0, 150, doc.page.width, 40).fill("#3d3d3d");
+        // Texte DEVIs à gauche
+        doc
+            .fillColor("#fff")
             .fontSize(20)
-            .text("DEVIS", 50, 150);
+            .text("DEVIS", 50, 160);
 
-        // === CLIENT BOX ===
+        // Bloc numéro + date ALIGNÉ À DROITE
+        doc
+            .fontSize(10)
+            .fillColor("#fff")
+            .text(
+                `N° ${numeroDevis}\nDate : ${dateDevis}`,
+                doc.page.width - 250,
+                160,
+                {
+                    width: 200,
+                    align: "right",
+                }
+            );
+
+
+        /* ================== CLIENT ================== */
         doc.moveDown(3);
         const boxY = doc.y;
-        doc.roundedRect(50, boxY, 500, 80, 10).fillOpacity(0.1).fill("#bdc3c7").stroke();
+
+        doc
+            .roundedRect(50, boxY, 500, 90, 10)
+            .fillOpacity(0.1)
+            .fill("#bdc3c7")
+            .stroke();
+
         doc.fillOpacity(1).fillColor("#2C3E50").fontSize(12);
-        doc.text(`Nom : ${devis.nom}`, 60, boxY + 10);
+        doc.text(`Client : ${devis.nom}`, 60, boxY + 10);
         doc.text(`Email : ${devis.email}`);
         doc.text(`Téléphone : ${devis.telephone}`);
+        if (devis.details) {
+            doc.moveDown(0.5);
+            doc.fontSize(10).fillColor("#555").text(`Message : ${devis.details}`);
+        }
 
-        // === TABLEAU DES PRESTATIONS ===
-        doc.moveDown(5);
+        /* ================== PRESTATIONS ================== */
+        doc.moveDown(2);
         doc.fontSize(14).fillColor("#2C3E50").text("Détails des prestations", { underline: true });
         doc.moveDown();
 
         const tableTop = doc.y;
         const itemX = 50, quantityX = 300, unitPriceX = 380, totalX = 470;
 
-        // En-tête tableau
-        doc.rect(itemX - 5, tableTop, 500, 25).fill("#1abc9c");
+        doc.rect(itemX - 5, tableTop, 500, 25).fill("#3d3d3d");
         doc.fillColor("white").fontSize(12)
             .text("Désignation", itemX, tableTop + 7)
-            .text("Quantité", quantityX, tableTop + 7)
-            .text("PU (€)", unitPriceX, tableTop + 7)
-            .text("Total (€)", totalX, tableTop + 7);
+            .text("Qté", quantityX, tableTop + 7)
+            .text("PU HT (€)", unitPriceX, tableTop + 7)
+            .text("Total HT (€)", totalX, tableTop + 7);
 
         let y = tableTop + 30;
-        doc.fillColor("black");
-
         let totalHT = 0;
+
         devis.prestations.forEach((p, i) => {
-            const total = (p.quantite || 0) * (p.prixUnitaire || 0);
-            totalHT += total;
+            const lineTotal = p.quantite * p.prixUnitaire;
+            totalHT += lineTotal;
 
-            const bgColor = i % 2 === 0 ? "#ecf0f1" : "#ffffff"; // alternance lignes
-            doc.rect(itemX - 5, y - 5, 500, 20).fill(bgColor).stroke();
+            doc.rect(itemX - 5, y - 5, 500, 22)
+                .fill(i % 2 === 0 ? "#ecf0f1" : "#ffffff")
+                .stroke();
 
-            doc.fillColor("#2C3E50").fontSize(12)
+            doc.fillColor("#2C3E50").fontSize(11)
                 .text(p.designation, itemX, y)
                 .text(p.quantite, quantityX, y)
-                .text(`${p.prixUnitaire.toFixed(2)} €`, unitPriceX, y)
-                .text(`${total.toFixed(2)} €`, totalX, y);
+                .text(p.prixUnitaire.toFixed(2), unitPriceX, y)
+                .text(lineTotal.toFixed(2), totalX, y);
 
             y += 25;
         });
 
-        // === CALCULS TVA / TTC ===
-        const tauxTVA = 0.20;
-        const tva = totalHT * tauxTVA;
+        /* ================== TOTAUX ================== */
+        const tva = totalHT * 0.2;
         const totalTTC = totalHT + tva;
 
         doc.moveDown(2);
         const totalBoxY = doc.y;
-        doc.rect(300, totalBoxY, 200, 80).fill("#16a085").stroke();
-        doc.fillColor("white").fontSize(12)
-            .text(`Sous-total HT : ${totalHT.toFixed(2)} €`, 310, totalBoxY + 10)
+
+        doc.rect(300, totalBoxY, 200, 90).fill("#3d3d3d");
+        doc.fillColor("#fff").fontSize(11)
+            .text(`Total HT : ${totalHT.toFixed(2)} €`, 310, totalBoxY + 10)
             .text(`TVA (20%) : ${tva.toFixed(2)} €`, 310, totalBoxY + 30)
             .font("Helvetica-Bold")
-            .text(`Total TTC : ${totalTTC.toFixed(2)} €`, 310, totalBoxY + 50);
+            .text(`Total TTC : ${totalTTC.toFixed(2)} €`, 310, totalBoxY + 55);
 
-        // === FOOTER ===
-        doc.moveDown(6);
+        /* ================== MENTIONS LÉGALES ================== */
+        doc.moveDown(4);
+        doc.fontSize(9).fillColor("#555")
+            .text(`Devis valable ${ENTREPRISE.validite} à compter du ${dateDevis}.`)
+            .text(`Statut juridique : ${ENTREPRISE.statut}`)
+            .text(`SIRET : ${ENTREPRISE.siret}`)
+            .text(`TVA applicable : ${ENTREPRISE.tva}`);
+
+        /* ================== FOOTER ================== */
         doc.moveTo(50, doc.page.height - 70)
             .lineTo(doc.page.width - 50, doc.page.height - 70)
-            .stroke("#bdc3c7");
+            .stroke("#ccc");
 
-        doc.fontSize(10).fillColor("#7F8C8D")
-            .text("TS Couverture Peinture - SIRET : 123 456 789 00010", { align: "center" })
-            .text("Email : contact@tscouverturepeinture.fr - Site : www.tscouverturepeinture.fr", { align: "center" });
+        doc.fontSize(9).fillColor("#777")
+            .text(`${ENTREPRISE.nom} – ${ENTREPRISE.ville}`, { align: "center" })
+            .text(`Contact : ${ENTREPRISE.email} – ${ENTREPRISE.telephone}`, { align: "center" });
 
         doc.end();
 
         stream.on("finish", () => resolve(filePath));
-        stream.on("error", (err) => reject(err));
+        stream.on("error", reject);
     });
 }
 
